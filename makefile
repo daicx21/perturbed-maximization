@@ -1,3 +1,6 @@
+dcx_test:
+	time python python/speed.py AAMAS2021 PM-Q 0.9 0.1 0.25 0.0
+
 main:
 	python3 python/main.py AAMAS2015 0.00
 	python3 python/main.py ICLR2018 0.02

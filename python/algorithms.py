@@ -32,8 +32,13 @@ def PLRA(instance, maxprob = 1.0):
 		for i in range(instance.np):
 			load += assignment[i][j]
 		solver.addConstr(load <= instance.ellr)
+
+	# solver.Params.Method = 2  # Barrier
+	# solver.Params.BarOrder = 1  # GPU
+
 	# Run the Gurobi solver
 	solver.optimize()
+
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
 
@@ -45,10 +50,12 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 	#   beta:     the parameter used in the perturbation function
 	# 	maxprob:  maximum allowed assignment probability
 	# Output: an assignment matrix in nested list
+
 	# Initialize Gurobi solver
 	import gurobipy as gp
 	solver = gp.Model()
 	solver.setParam('OutputFlag', 0)
+
 	# Initialize assignment matrix and objective function
 	objective  = 0.0
 	assignment = [[0.0 for j in range(instance.nr)] for i in range(instance.np)]
@@ -56,8 +63,35 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 		for j in range(instance.nr):
 			x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
 			assignment[i][j] = x
-			objective += (x - beta * x * x) * instance.s[i][j]
+			y = solver.addVar()
+			xpts = [0, 0.5, 1.0]
+			ypts = []
+			for k in range(3):
+				now = xpts[k]
+				ypts.append((now - beta * now * now) * instance.s[i][j])
+			solver.addGenConstrPWL(x, y, xpts, ypts)
+			objective += y
+			# objective += (x - beta * x * x) * instance.s[i][j]
+
 	solver.setObjective(objective, gp.GRB.MAXIMIZE)
+
+	# if instance.dataset.lower() == 'aamas2021' or instance.dataset.lower() == 'iclr2018':
+	# 	coauthorship_degree = [0 for i in range(instance.nr)]
+	# 	for i in range(instance.nr):
+	# 		for j in range(instance.nr):
+	# 			if instance.coauthorship[i][j] == True:
+	# 				coauthorship_degree[i] += 1
+		
+	# 	import numpy as np
+	# 	for i in range(instance.np):
+	# 		for j in range(instance.nr):
+	# 			for k in range(j + 1, instance.nr):
+	# 				if instance.coauthorship[j][k] == False:
+	# 					continue
+	# 				hh = assignment[i][j] + assignment[i][k]
+	# 				solver.addConstr(hh <= 1)
+
+	# solver.setObjective(objective, gp.GRB.MAXIMIZE)
 	# Add ellp & ellr as constraints
 	for i in range(instance.np):
 		assigned = 0.0
@@ -69,8 +103,10 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 		for i in range(instance.np):
 			load += assignment[i][j]
 		solver.addConstr(load <= instance.ellr)
+
 	# Run the Gurobi solver
 	solver.optimize()
+ 
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
 
@@ -138,7 +174,7 @@ def PME(instance, alpha = 1.0, maxprob = 1.0):
 		solver.optimize()
 		# Return the resulting matching
 		return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
-	
+
 	# The successive approximation method
 	eps = 1e-2
 	current = [[0.0 for j in range(instance.nr)] for i in range(instance.np)]
