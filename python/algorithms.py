@@ -87,6 +87,16 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 				for i in range(instance.np):
 					hh = assignment[i][j] + assignment[i][k]
 					solver.addConstr(hh <= maxprob)
+	
+	if instance.dataset.lower() == 'aamas2021':
+		for i in range(instance.nr):
+			for j in instance.bidauthorlist[i]:
+				if j > i and instance.bidauthorship[j][i]:
+					for k in instance.paperlist[i]:
+						for l in instance.paperlist[j]:
+							if instance.bid[l][i] and instance.bid[k][j]:
+								hh = assignment[l][i] + assignment[k][j]
+								solver.addConstr(hh <= maxprob)
 
 	# Add ellp & ellr as constraints
 	for i in range(instance.np):

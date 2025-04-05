@@ -24,19 +24,43 @@ class InputInstance:
 
 			data = np.load('datasets/aamas2021/aamas_authorship.npy')
 			self.authorship = []
+			self.authorlist = [[] for _ in range(self.np)]
+			self.paperlist = [[] for _ in range(self.nr)]
+			i = 0
 			for row in data:
-				self.authorship.append(list(map(bool, row.tolist())))
-
-			self.bid = []
-			for i in range(self.np):
-				self.bid.append([])
+				r_list = list(map(bool, row.tolist()))
+				self.authorship.append(r_list)
 				for j in range(self.nr):
-					self.bid[i].append(False)
+					if r_list[j] == True:
+						self.authorlist[i].append(j)
+						self.paperlist[j].append(i)
+				i += 1
+
+			self.bid = [[False for _ in range(self.nr)] for _ in range(self.np)]
+			self.bidlist = [[] for _ in range(self.nr)]
+			self.bidauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
+			self.bidauthorlist = [[] for _ in range(self.nr)]
 			with open('datasets/aamas2021/aamas_2021.csv', 'r') as file:
 				reader = csv.reader(file)
 				for row in reader:
 					if row[0].startswith('pc') and (row[2] == 'yes' or row[2] == 'maybe'):
 						self.bid[int(row[1]) - 1][int(row[0][3:]) - 1] = True
+						self.bidlist[int(row[0][3:]) - 1].append(int(row[1]) - 1)
+
+			for i in range(self.nr):
+				for j in self.bidlist[i]:
+					for k in self.authorlist[j]:
+						if not self.bidauthorship[i][k]:
+							self.bidauthorship[i][k] = True
+							self.bidauthorlist[i].append(k)
+
+			counter = 0
+			for i in range(self.nr):
+				for j in self.bidauthorlist[i]:
+					if j > i and self.bidauthorship[j][i]:
+						counter += 1
+			
+			print('num_2_cycles:', counter)
 
 			self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
 			self.coauthorlist = [[] for _ in range(self.nr)]
