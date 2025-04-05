@@ -38,12 +38,9 @@ class InputInstance:
 					if row[0].startswith('pc') and (row[2] == 'yes' or row[2] == 'maybe'):
 						self.bid[int(row[1]) - 1][int(row[0][3:]) - 1] = True
 
-			self.coauthorship = []
-			for i in range(self.nr):
-				self.coauthorship.append([])
-				for j in range(self.nr):
-					self.coauthorship[i].append(False)
-			np.random.seed(456)
+			self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
+			self.coauthorlist = [[] for _ in range(self.nr)]
+			np.random.seed(123)
 			cnt = 0
 			for i in range(self.nr):
 				for j in range(i + 1, self.nr):
@@ -52,6 +49,8 @@ class InputInstance:
 						now += self.s[k][i] * self.s[k][j]
 					if np.random.binomial(1, 10 / self.nr * now) == 1:
 						self.coauthorship[i][j] = self.coauthorship[j][i] = True
+						self.coauthorlist[i].append(j)
+						self.coauthorlist[j].append(i)
 						cnt += 1
 			print('avg_coauthors:', cnt * 2 / self.nr, '!!!')
    
@@ -77,20 +76,19 @@ class InputInstance:
 				self.ellr = 1
 
 			if dataset.lower() == 'iclr2018':
-				self.coauthorship = []
-				for i in range(self.nr):
-					self.coauthorship.append([])
-					for j in range(self.nr):
-						self.coauthorship[i].append(False)
+				self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
+				self.coauthorlist = [[] for _ in range(self.nr)]
 
 				A = torch.tensor(self.s)
 				B = torch.mm(A.T, A)
 				cnt = 0
-				np.random.seed(1)
+				np.random.seed(123)
 				for i in range(self.nr):
 					for j in range(i + 1, self.nr):
-						if np.random.binomial(1, 6 / self.nr * B[i][j]) == 1:
+						if np.random.binomial(1, 10 / self.nr * B[i][j]) == 1:
 							self.coauthorship[i][j] = self.coauthorship[j][i] = True
+							self.coauthorlist[i].append(j)
+							self.coauthorlist[j].append(i)
 							cnt += 1
 				print('avg_coauthors:', cnt * 2 / self.nr, '!!!')
 
