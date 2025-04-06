@@ -69,7 +69,7 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 		coauthorship_degree = [0 for j in range(instance.nr)]
 		for j in range(instance.nr):
 			for k in range(j + 1, instance.nr):
-				if instance.coauthorship[i][j] == True:
+				if instance.coauthorship[j][k] == True:
 					coauthorship_degree[j] += 1
 					coauthorship_degree[k] += 1
 
