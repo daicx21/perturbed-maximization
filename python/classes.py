@@ -1,6 +1,5 @@
 import csv
 import numpy as np
-import torch
 
 class InputInstance:
 	# Input instance of randomized assignment algorithms
@@ -103,6 +102,7 @@ class InputInstance:
 				self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
 				self.coauthorlist = [[] for _ in range(self.nr)]
 
+				# import torch
 				# A = torch.tensor(self.s)
 				# B = torch.mm(A.T, A)
 				# cnt = 0
