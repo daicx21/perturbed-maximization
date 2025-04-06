@@ -109,7 +109,7 @@ class InputInstance:
 				np.random.seed(123)
 				for i in range(self.nr):
 					for j in range(i + 1, self.nr):
-						if np.random.binomial(1, 10 / self.nr) == 1:
+						if np.random.binomial(1, 2 / self.nr) == 1:
 						# if np.random.binomial(1, 10 / self.nr * B[i][j]) == 1:
 							self.coauthorship[i][j] = self.coauthorship[j][i] = True
 							self.coauthorlist[i].append(j)
