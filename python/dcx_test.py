@@ -23,7 +23,7 @@ import numpy as np
 instance = classes.InputInstance(dataset, init=True)
 
 # Run the algorithm
-assignment = algorithms.PMQ(instance, beta=beta, maxprob=maxprob)
+assignment = algorithms.PMPL(instance, beta=beta, maxprob=maxprob)
 
 # Output statistics
 pquality = 0
@@ -212,7 +212,7 @@ if dataset.lower() == 'aamas2021':
 
 	print('num_deleted: ', cnt1, 'num_non_deleted: ', cnt2)
 
-	assignment = algorithms.PMQ_second(instance, beta=beta, maxprob=maxprob)
+	assignment = algorithms.PMPL_second(instance, beta=beta, maxprob=maxprob)
 
 	pquality = 0
 	for i in range(instance.np):

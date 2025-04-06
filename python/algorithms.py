@@ -63,6 +63,64 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 		for j in range(instance.nr):
 			x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
 			assignment[i][j] = x
+			objective += (-x + beta * x * x) * instance.s[i][j]
+
+	if instance.dataset.lower() == 'aamas2021' or instance.dataset.lower() == 'iclr2018':
+		coauthorship_degree = [0 for j in range(instance.nr)]
+		for j in range(instance.nr):
+			for k in range(j + 1, instance.nr):
+				if instance.coauthorship[i][j] == True:
+					coauthorship_degree[j] += 1
+					coauthorship_degree[k] += 1
+
+		import numpy as np
+		for j in range(instance.nr):
+			for k in range(j + 1, instance.nr):
+				if instance.coauthorship[j][k] == False:
+					continue
+				for i in range(instance.np):
+					objective += 2.0 * beta * (np.sqrt((instance.s[i][j] / coauthorship_degree[j]) * (instance.s[i][k] / coauthorship_degree[k])) - (1e-6)) * assignment[i][j] * assignment[i][k]
+
+	# Add ellp & ellr as constraints
+	for i in range(instance.np):
+		assigned = 0.0
+		for j in range(instance.nr):
+			assigned += assignment[i][j]
+		solver.addConstr(assigned == instance.ellp)
+	for j in range(instance.nr):
+		load = 0.0
+		for i in range(instance.np):
+			load += assignment[i][j]
+		solver.addConstr(load <= instance.ellr)
+
+	solver.setObjective(objective, gp.GRB.MINIMIZE)
+	# Run the Gurobi solver
+	solver.optimize()
+ 
+	# Return the resulting matching
+	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
+
+def PMPL(instance, beta = 0.5, maxprob = 1.0):
+	# PM-Quadratic Gurobi implementation
+	# 	The perturbation function used is f(x) = x - beta * x ^ 2
+	# Inputs arguments:
+	# 	instance: the input instance
+	#   beta:     the parameter used in the perturbation function
+	# 	maxprob:  maximum allowed assignment probability
+	# Output: an assignment matrix in nested list
+
+	# Initialize Gurobi solver
+	import gurobipy as gp
+	solver = gp.Model()
+	solver.setParam('OutputFlag', 1)
+
+	# Initialize assignment matrix and objective function
+	objective  = 0.0
+	assignment = [[0.0 for j in range(instance.nr)] for i in range(instance.np)]
+	for i in range(instance.np):
+		for j in range(instance.nr):
+			x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
+			assignment[i][j] = x
 			xpts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 			ypts = []
 			for k in range(10):
@@ -117,7 +175,7 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
 
-def PMQ_second(instance, beta = 0.5, maxprob = 1.0):
+def PMPL_second(instance, beta = 0.5, maxprob = 1.0):
 	# PM-Quadratic Gurobi implementation
 	# 	The perturbation function used is f(x) = x - beta * x ^ 2
 	# Inputs arguments:
