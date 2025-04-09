@@ -112,7 +112,7 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 	# Initialize Gurobi solver
 	import gurobipy as gp
 	solver = gp.Model()
-	solver.setParam('OutputFlag', 1)
+	solver.setParam('OutputFlag', 0)
 
 	# Initialize assignment matrix and objective function
 	objective  = 0.0
@@ -139,12 +139,15 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 
 		import numpy as np
 		for j in range(instance.nr):
+			list_neighbours = [j]
 			for k in range(j + 1, instance.nr):
-				if instance.coauthorship[j][k] == False:
-					continue
-				for i in range(instance.np):
-					hh = assignment[i][j] + assignment[i][k]
-					solver.addConstr(hh <= maxprob)
+				if instance.coauthorship[j][k] == True:
+					list_neighbours.append(k)
+			for i in range(instance.np):
+				hh = 0
+				for k in list_neighbours:
+					hh += assignment[i][k]
+				solver.addConstr(hh <= maxprob)
 	
 	if instance.dataset.lower() == 'aamas2021':
 		for i in range(instance.nr):
@@ -187,7 +190,7 @@ def PMPL_second(instance, beta = 0.5, maxprob = 1.0):
 	# Initialize Gurobi solver
 	import gurobipy as gp
 	solver = gp.Model()
-	solver.setParam('OutputFlag', 1)
+	solver.setParam('OutputFlag', 0)
 
 	# Initialize assignment matrix and objective function
 	objective  = 0.0
@@ -205,6 +208,26 @@ def PMPL_second(instance, beta = 0.5, maxprob = 1.0):
 			else:
 				x = solver.addVar(lb = 0, ub = 0, name = f"{i} {j}")
 			assignment[i][j] = x
+
+	if instance.dataset.lower() == 'aamas2021' or instance.dataset.lower() == 'iclr2018':
+		coauthorship_degree = [0 for j in range(instance.nr)]
+		for j in range(instance.nr):
+			for k in range(j + 1, instance.nr):
+				if instance.coauthorship[i][j] == True:
+					coauthorship_degree[j] += 1
+					coauthorship_degree[k] += 1
+
+		import numpy as np
+		for j in range(instance.nr):
+			list_neighbours = [j]
+			for k in range(j + 1, instance.nr):
+				if instance.coauthorship[j][k] == True:
+					list_neighbours.append(k)
+			for i in range(instance.np):
+				hh = 0
+				for k in list_neighbours:
+					hh += assignment[i][k]
+				solver.addConstr(hh <= maxprob)
 
 	# Add ellp & ellr as constraints
 	for i in range(instance.np):
