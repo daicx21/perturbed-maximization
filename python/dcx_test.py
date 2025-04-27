@@ -16,6 +16,7 @@ import algorithms
 import classes
 import metrics
 import numpy as np
+from collections import defaultdict
 
 # Read the dataset and calculate the maximum possible quality
 instance = classes.InputInstance(dataset, init=True)
@@ -23,16 +24,29 @@ instance = classes.InputInstance(dataset, init=True)
 # Run the algorithm
 assignment = algorithms.PMPL(instance, beta=beta, maxprob=maxprob)
 
-# Output statistics
-pquality = 0
-for i in range(instance.np):
-	for j in range(instance.nr):
-		pquality += (assignment[i][j] - assignment[i][j] * assignment[i][j] * beta) * instance.s[i][j]
-print(f'Quality: {metrics.quality(instance, assignment):.2f}', '/', f'{instance.max_quality:.2f}')
-print(f'PQuality: {pquality:.2f}')
-for i in range(5):
-	print(f'{metrics.name(i, style = 2)}: {metrics.calc(instance, assignment, i):.2f}')
-print()
+
+if dataset.lower() == 'testlarge':
+	# Output statistics
+	pquality = 0
+	for i in range(instance.np):
+		for j in instance.biddedlist[i]:
+			pquality += (assignment[i][j] - assignment[i][j] * assignment[i][j] * beta) * instance.s[i][j]
+	print(f'Quality: {metrics.quality(instance, assignment):.2f}', '/', f'{instance.max_quality:.2f}')
+	print(f'PQuality: {pquality:.2f}')
+	for i in range(5):
+		print(f'{metrics.name(i, style = 2)}: {metrics.calc(instance, assignment, i):.2f}')
+	print()
+else:
+	# Output statistics
+	pquality = 0
+	for i in range(instance.np):
+		for j in range(instance.nr):
+			pquality += (assignment[i][j] - assignment[i][j] * assignment[i][j] * beta) * instance.s[i][j]
+	print(f'Quality: {metrics.quality(instance, assignment):.2f}', '/', f'{instance.max_quality:.2f}')
+	print(f'PQuality: {pquality:.2f}')
+	for i in range(5):
+		print(f'{metrics.name(i, style = 2)}: {metrics.calc(instance, assignment, i):.2f}')
+	print()
 
 
 if dataset.lower() == 'aamas2021' or dataset.lower() == 'iclr2018':
@@ -222,13 +236,21 @@ if dataset.lower() == 'testlarge':
 	os.system('cpp/bvn < results/output.out > results/output_bvn.out')
 
 	assignment_final = [{} for _ in range(instance.np)]
+	for i in range(instance.np):
+		for j in instance.biddedlist[i]:
+			assignment_final[i][j] = False
+
 	with open('results/output_bvn.out', 'r') as file:
 		for line in file:
 			result = line.strip().split()
 			assignment_final[int(result[1]) - instance.nr][int(result[0])] = True
 
 	for i in range(instance.np):
-		if assignment_final[i].count(True) != instance.ellp:
+		counter = 0
+		for j in assignment_final[i].keys():
+			if assignment_final[i][j] == True:
+				counter += 1
+		if counter != instance.ellp:
 			print(i, 'no!!!')
 
 	sum_coauthors = 0
@@ -265,9 +287,10 @@ if dataset.lower() == 'testlarge':
 	print('sum_2cycles:', sum_2cycles)
 	print()
 
+
 	instance.deleted = [defaultdict(bool) for _ in range(instance.np)]
 	for i in range(instance.np):
-		r_list = sorted([j for j in instance.biddedlist[i]], key=lambda x: assignment[i][x])
+		r_list = sorted(instance.biddedlist[i], key=lambda x: assignment[i][x])
 		vis = defaultdict(bool)
 		for j in reversed(r_list):
 			vis[j] = True
@@ -294,6 +317,8 @@ if dataset.lower() == 'testlarge':
 								vis_pr_list[(k, j)] = True
 								pr_list.append((k, j))
 
+	print('len:', len(pr_list))
+
 	pr_list = sorted(pr_list, key=lambda x: assignment[x[0]][x[1]])
 	vis_pr_list = defaultdict(bool)
 	for tup1 in reversed(pr_list):
@@ -316,15 +341,28 @@ if dataset.lower() == 'testlarge':
 
 assignment = algorithms.PMPL_second(instance, beta=beta, maxprob=maxprob)
 
-pquality = 0
-for i in range(instance.np):
-	for j in range(instance.nr):
-		pquality += (assignment[i][j] - assignment[i][j] * assignment[i][j] * beta) * instance.s[i][j]
-print(f'Quality: {metrics.quality(instance, assignment):.2f}', '/', f'{instance.max_quality:.2f}')
-print(f'PQuality: {pquality:.2f}')
-for i in range(5):
-	print(f'{metrics.name(i, style = 2)}: {metrics.calc(instance, assignment, i):.2f}')
-print()
+if dataset.lower() == 'testlarge':
+	# Output statistics
+	pquality = 0
+	for i in range(instance.np):
+		for j in instance.biddedlist[i]:
+			pquality += (assignment[i][j] - assignment[i][j] * assignment[i][j] * beta) * instance.s[i][j]
+	print(f'Quality: {metrics.quality(instance, assignment):.2f}', '/', f'{instance.max_quality:.2f}')
+	print(f'PQuality: {pquality:.2f}')
+	for i in range(5):
+		print(f'{metrics.name(i, style = 2)}: {metrics.calc(instance, assignment, i):.2f}')
+	print()
+else:
+	# Output statistics
+	pquality = 0
+	for i in range(instance.np):
+		for j in range(instance.nr):
+			pquality += (assignment[i][j] - assignment[i][j] * assignment[i][j] * beta) * instance.s[i][j]
+	print(f'Quality: {metrics.quality(instance, assignment):.2f}', '/', f'{instance.max_quality:.2f}')
+	print(f'PQuality: {pquality:.2f}')
+	for i in range(5):
+		print(f'{metrics.name(i, style = 2)}: {metrics.calc(instance, assignment, i):.2f}')
+	print()
 
 
 if dataset.lower() == 'aamas2021' or dataset.lower() == 'iclr2018':
@@ -371,7 +409,7 @@ if dataset.lower() == 'aamas2021' or dataset.lower() == 'iclr2018':
 
 	import os
 	os.system('cpp/bvn < results/output.out > results/output_bvn.out')
-
+	
 	assignment_final = [[False for _ in range(instance.nr)] for _ in range(instance.np)]
 	with open('results/output_bvn.out', 'r') as file:
 		for line in file:
@@ -514,13 +552,21 @@ if dataset.lower() == 'testlarge':
 	os.system('cpp/bvn < results/output.out > results/output_bvn.out')
 
 	assignment_final = [{} for _ in range(instance.np)]
+	for i in range(instance.np):
+		for j in instance.biddedlist[i]:
+			assignment_final[i][j] = False
+
 	with open('results/output_bvn.out', 'r') as file:
 		for line in file:
 			result = line.strip().split()
 			assignment_final[int(result[1]) - instance.nr][int(result[0])] = True
 
 	for i in range(instance.np):
-		if assignment_final[i].count(True) != instance.ellp:
+		counter = 0
+		for j in assignment_final[i].keys():
+			if assignment_final[i][j] == True:
+				counter += 1
+		if counter != instance.ellp:
 			print(i, 'no!!!')
 
 	sum_coauthors = 0

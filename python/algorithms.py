@@ -12,6 +12,45 @@ def PLRA(instance, maxprob = 1.0):
 	import gurobipy as gp
 	solver = gp.Model()
 	solver.setParam('OutputFlag', 0)
+
+	if instance.dataset.lower() == 'testlarge':
+		# Initialize assignment matrix and objective function
+		objective  = 0.0
+		assignment = [{} for i in range(instance.np)]
+		for i in range(instance.np):
+			for j in instance.biddedlist[i]:
+				x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
+				assignment[i][j] = x
+				objective += x * instance.s[i][j]
+		solver.setObjective(objective, gp.GRB.MAXIMIZE)
+		# Add ellp & ellr as constraints
+		for i in range(instance.np):
+			assigned = 0.0
+			for j in instance.biddedlist[i]:
+				assigned += assignment[i][j]
+			solver.addConstr(assigned == instance.ellp)
+		for j in range(instance.nr):
+			load = 0.0
+			for i in instance.bidlist[j]:
+				load += assignment[i][j]
+			solver.addConstr(load <= instance.ellr)
+
+		# solver.Params.Method = 2  # Barrier
+		# solver.Params.BarOrder = 1  # GPU
+
+		# Run the Gurobi solver
+		import time
+		print(time.time())
+		solver.optimize()
+		print(time.time())
+
+		# Return the resulting matching
+		for i in range(instance.np):
+			for j in assignment[i].keys():
+				assignment[i][j] = assignment[i][j].X
+		return assignment
+
+
 	# Initialize assignment matrix and objective function
 	objective  = 0.0
 	assignment = [[0.0 for j in range(instance.nr)] for i in range(instance.np)]
@@ -117,6 +156,9 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 	if instance.dataset.lower() == 'testlarge':
 		objective  = 0.0
 		assignment = [{} for i in range(instance.np)]
+
+		print(233)
+
 		for i in range(instance.np):
 			for j in instance.biddedlist[i]:
 				x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
@@ -128,9 +170,11 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 					ypts.append(- (now - beta * now * now) * instance.s[i][j])
 				solver.setPWLObj(x, xpts, ypts)
 
+		print(233)
+
 		import numpy as np
 		for j in range(instance.nr):
-			list_neighbours = instance.coauthorlist[j]
+			list_neighbours = instance.coauthorlist[j].copy()
 			list_neighbours.append(j)
 			for i in instance.bidlist[j]:
 				hh = 0
@@ -139,6 +183,8 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 						hh += assignment[i][k]
 				solver.addConstr(hh <= maxprob)
 		
+		print(233)
+
 		for i in range(instance.nr):
 			for j in instance.bidauthorlist[i]:
 				if j > i and instance.bidauthorship[j][i]:
@@ -147,6 +193,8 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 							if instance.bid[l][i] and instance.bid[k][j]:
 								hh = assignment[l][i] + assignment[k][j]
 								solver.addConstr(hh <= maxprob)
+
+		print(233)
 
 		# Add ellp & ellr as constraints
 		for i in range(instance.np):
@@ -270,7 +318,10 @@ def PMPL_second(instance, beta = 0.5, maxprob = 1.0):
 		assignment = [{} for i in range(instance.np)]
 		for i in range(instance.np):
 			for j in instance.biddedlist[i]:
-				x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
+				if instance.deleted[i][j] == False:
+					x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
+				else:
+					x = solver.addVar(lb = 0, ub = 0, name = f"{i} {j}")
 				assignment[i][j] = x
 				xpts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 				ypts = []
@@ -281,7 +332,7 @@ def PMPL_second(instance, beta = 0.5, maxprob = 1.0):
 
 		import numpy as np
 		for j in range(instance.nr):
-			list_neighbours = instance.coauthorlist[j]
+			list_neighbours = instance.coauthorlist[j].copy()
 			list_neighbours.append(j)
 			for i in instance.bidlist[j]:
 				hh = 0

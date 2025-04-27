@@ -15,8 +15,11 @@ class InputInstance:
 		self.dataset = dataset
 		if dataset.lower() == 'testlarge':
 			np.random.seed(100)
-			self.np = 9000
-			self.nr = 7500
+			sz = 100
+			h1 = 150
+			h2 = 120
+			self.np = sz * h1
+			self.nr = sz * h2
 			self.ellp = 4
 			self.ellr = 6
 			self.s = [defaultdict(float) for _ in range(self.np)]
@@ -28,25 +31,25 @@ class InputInstance:
 			self.biddedlist = [[] for _ in range(self.np)]
 			self.bidauthorship = [defaultdict(bool) for _ in range(self.nr)]
 			self.bidauthorlist = [[] for _ in range(self.nr)]
-			for i1 in range(30):
-				for i2 in range(300):
-					i = i1 * 300 + i2
+			for i1 in range(sz):
+				for i2 in range(h1):
+					i = i1 * h1 + i2
 					bo = defaultdict(bool)
 
 					for j in range(90):
-						id = np.random.randint(0, 250) + i1 * 250
+						id = np.random.randint(0, h2) + i1 * h2
 						while bo[id] == True:
-							id = np.random.randint(0, 250) + i1 * 250
+							id = np.random.randint(0, h2) + i1 * h2
 						bo[id] = True
-						self.s[i][id] = np.random.uniform(0.5, 1.0)
+						self.s[i][id] = np.random.uniform(0.8, 1.0)
 						self.bid[i][id] = True
 						self.bidlist[id].append(i)
 						self.biddedlist[i].append(id)
 					
 					for j in range(np.random.randint(0, 5)):
-						id = np.random.randint(0, 250) + i1 * 250
+						id = np.random.randint(0, h2) + i1 * h2
 						while bo[id] == True:
-							id = np.random.randint(0, 250) + i1 * 250
+							id = np.random.randint(0, h2) + i1 * h2
 						bo[id] = True
 						self.authorship[i][id] = True
 						self.authorlist[i].append(id)
@@ -57,7 +60,7 @@ class InputInstance:
 						while bo[id] == True:
 							id = np.random.randint(0, self.nr)
 						bo[id] = True
-						self.s[i][id] = np.random.uniform(0.0, 0.8)
+						self.s[i][id] = np.random.uniform(0.5, 1.0)
 						self.bid[i][id] = True
 						self.bidlist[id].append(i)
 						self.biddedlist[i].append(id)
@@ -82,14 +85,15 @@ class InputInstance:
 			self.coauthorship = [defaultdict(bool) for _ in range(self.nr)]
 			self.coauthorlist = [[] for _ in range(self.nr)]
 			cnt = 0
-			for i1 in range(30):
-				for i in range(i1 * 250, (i1 + 1) * 250):
-					for j in range(i + 1, (i1 + 1) * 250):
+			for i1 in range(sz):
+				for i in range(i1 * h2, (i1 + 1) * h2):
+					for j in range(i + 1, (i1 + 1) * h2):
 						now = 0.0
 						for k in self.bidlist[i]:
 							now += self.s[k][i] * self.s[k][j]
 						if np.random.binomial(1, 5 / self.nr * now) == 1:
-							self.coauthorship[i][j] = self.coauthorship[j][i] = True
+							self.coauthorship[i][j] = True
+							self.coauthorship[j][i] = True
 							self.coauthorlist[i].append(j)
 							self.coauthorlist[j].append(i)
 							cnt += 1

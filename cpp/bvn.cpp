@@ -137,20 +137,10 @@ int gao1(int x, int y, int p) // x: current vertex, y: previous edge, p: whether
 
 int tr(int x, int i, int p) // find a fractional edge adjacent to x not visited yet belonging to institution i (or any insitution with fractional paper-instituion load when i = 0)
 {
-    int mx = -inf, res = 0;
     if(!hi[x])
     {
         for(int j = h[x]; j; j = l[j])
-            if(!se[j])
-            {
-                int hh = gao(j);
-                if (gao1(v[j], j, p)) hh -= 2;
-                if (res == 0 || hh > mx)
-                {
-                    mx = hh;
-                    res = j;
-                }
-            }
+            if(!se[j]) return j;
     }
     else if(!i)
     {
@@ -163,17 +153,8 @@ int tr(int x, int i, int p) // find a fractional edge adjacent to x not visited 
     }
     else
         for(int j = h[x]; j; j = l[j])
-            if(ri[v[j]] == i && !se[j])
-            {
-                int hh = gao(j);
-                if (gao1(v[j], j, p)) hh -= 2;
-                if (res == 0 || hh > mx)
-                {
-                    mx = hh;
-                    res = j;
-                }
-            }
-    return res;
+            if(ri[v[j]] == i && !se[j]) return j;
+    return 0;
 }
 
 void cnr(int x) // if edge with pointer x has flow 0 or 1, then remove it and its co-edge
