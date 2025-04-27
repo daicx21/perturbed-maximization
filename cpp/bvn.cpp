@@ -5,10 +5,13 @@
 #include <cmath>
 #include <algorithm>
 #include <map>
-
+#include <unordered_map>
 using namespace std;
+#define inf 1000000000
 
 const int N = 100005, M = 50000005, one = 10000000, dig = 7, debug = 0; // N: maximum number of vertices, M: maximum number of edges
+
+unordered_map<int, bool> mp_bid[N];
 
 int p, r, n, m; // p: number of papers, r: number of reviewers, n = p + r, m: number of edges
 int h[N], u[M], v[M], l[M], se[M], tot = 1; // (simulated) linked lists of adjacent edges; h: heads, (u, v): starting and ending points of an edge, l: pointer to next edge, se: whether edge has been visited, tot: total number of edges ever added
@@ -78,26 +81,99 @@ void re(int x) // remove edge with pointer x
     l[i] = l[x];
 }
 
-int tr(int x, int i) // find a fractional edge adjacent to x not visited yet belonging to institution i (or any insitution with fractional paper-instituion load when i = 0)
+int gao(int y)
 {
+    int res = 0, h1 = ((u[y] <= n) ? u[y] : v[y]);
+    for (int j = top; j; j--)
+    {
+        int h2 = ((u[st[j]] <= n) ? u[st[j]] : v[st[j]]);
+        if ((top - j) & 1)
+        {
+            res -= mp_bid[h1][h2];
+        }
+        else
+        {
+            res += mp_bid[h1][h2];
+        }
+    }
+    return res;
+}
+
+int gao1(int x, int y, int p) // x: current vertex, y: previous edge, p: whether finding a path
+{
+    if(!hi[x]) // x is a reviewer
+    {
+        if(s[x]) // found a cycle
+        {
+            return 1;
+        }
+
+        if(y && p && (!in(c[x]))) // found a path
+        {
+            return 1;
+        }
+    }
+    else // x is a paper
+    {
+        int yi = fi(x, ri[u[y]]); // set yi to institution of incoming edge
+        
+        if(si[yi]) // found an ``even'' cycle (never happens when y = yi = 0)
+        {
+            return 1;
+        }
+
+        if(s[x] && !in(ci[yi])) // found an ``odd'' cycle
+        {
+            return 1;
+        }
+
+        if(y && p && (!in(c[x])) && (!in(ci[yi]))) // found a path
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int tr(int x, int i, int p) // find a fractional edge adjacent to x not visited yet belonging to institution i (or any insitution with fractional paper-instituion load when i = 0)
+{
+    int mx = -inf, res = 0;
     if(!hi[x])
     {
         for(int j = h[x]; j; j = l[j])
-            if(!se[j]) return j;
+            if(!se[j])
+            {
+                int hh = gao(j);
+                if (gao1(v[j], j, p)) hh -= 2;
+                if (res == 0 || hh > mx)
+                {
+                    mx = hh;
+                    res = j;
+                }
+            }
     }
     else if(!i)
     {
         for(int j = hi[x]; j; j = li[j])
             if(!in(ci[j]))
             {
-                int t = tr(x, vi[j]);
+                int t = tr(x, vi[j], p);
                 if(t) return t;
             }
     }
     else
         for(int j = h[x]; j; j = l[j])
-            if(ri[v[j]] == i && !se[j]) return j;
-    return 0;
+            if(ri[v[j]] == i && !se[j])
+            {
+                int hh = gao(j);
+                if (gao1(v[j], j, p)) hh -= 2;
+                if (res == 0 || hh > mx)
+                {
+                    mx = hh;
+                    res = j;
+                }
+            }
+    return res;
 }
 
 void cnr(int x) // if edge with pointer x has flow 0 or 1, then remove it and its co-edge
@@ -162,7 +238,7 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
         }
 
         s[x] = 1; // mark reviewer visited
-        t = tr(x, 0);
+        t = tr(x, 0, p);
 
         if(!t) // for some reason no fractional edge is available (should only happen when y = 0)
         {
@@ -239,9 +315,9 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
         }
     
         if(in(ci[yi])) // integral institution load -- leave through the same institution (equivalent to the other case when y = yi = 0)
-            t = tr(x, vi[yi]);
+            t = tr(x, vi[yi], p);
         else // leave through any fractional institution
-            t = tr(x, 0);
+            t = tr(x, 0, p);
 
         if(!t) // should only happen when y = 0
         {
@@ -353,7 +429,12 @@ int main()
         }
     }
 
-    puts("233");
+    freopen("./results/bidauthorship", "r", stdin);
+    while (~scanf("%d%d", &x, &y))
+    {
+        mp_bid[x + 1][y + 1] = true;
+        mp_bid[y + 1][x + 1] = true;
+    }
 
     while(m) // while there are still fractional edges left
     {

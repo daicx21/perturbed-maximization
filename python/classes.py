@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+from collections import defaultdict
 
 class InputInstance:
 	# Input instance of randomized assignment algorithms
@@ -12,7 +13,90 @@ class InputInstance:
 	#   max_quality: maximum possible quality
 	def __init__(self, dataset, init = True):
 		self.dataset = dataset
-		if dataset.lower() == 'aamas2021':
+		if dataset.lower() == 'testlarge':
+			np.random.seed(100)
+			self.np = 9000
+			self.nr = 7500
+			self.ellp = 4
+			self.ellr = 6
+			self.s = [defaultdict(float) for _ in range(self.np)]
+			self.authorship = [defaultdict(bool) for _ in range(self.np)]
+			self.authorlist = [[] for _ in range(self.np)]
+			self.paperlist = [[] for _ in range(self.nr)]
+			self.bid = [defaultdict(bool) for _ in range(self.np)]
+			self.bidlist = [[] for _ in range(self.nr)]
+			self.biddedlist = [[] for _ in range(self.np)]
+			self.bidauthorship = [defaultdict(bool) for _ in range(self.nr)]
+			self.bidauthorlist = [[] for _ in range(self.nr)]
+			for i1 in range(30):
+				for i2 in range(300):
+					i = i1 * 300 + i2
+					bo = defaultdict(bool)
+
+					for j in range(90):
+						id = np.random.randint(0, 250) + i1 * 250
+						while bo[id] == True:
+							id = np.random.randint(0, 250) + i1 * 250
+						bo[id] = True
+						self.s[i][id] = np.random.uniform(0.5, 1.0)
+						self.bid[i][id] = True
+						self.bidlist[id].append(i)
+						self.biddedlist[i].append(id)
+					
+					for j in range(np.random.randint(0, 5)):
+						id = np.random.randint(0, 250) + i1 * 250
+						while bo[id] == True:
+							id = np.random.randint(0, 250) + i1 * 250
+						bo[id] = True
+						self.authorship[i][id] = True
+						self.authorlist[i].append(id)
+						self.paperlist[id].append(i)
+
+					for j in range(10):
+						id = np.random.randint(0, self.nr)
+						while bo[id] == True:
+							id = np.random.randint(0, self.nr)
+						bo[id] = True
+						self.s[i][id] = np.random.uniform(0.0, 0.8)
+						self.bid[i][id] = True
+						self.bidlist[id].append(i)
+						self.biddedlist[i].append(id)
+			
+			for i in range(self.nr):
+				for j in self.bidlist[i]:
+					for k in self.authorlist[j]:
+						if not self.bidauthorship[i][k]:
+							self.bidauthorship[i][k] = True
+							self.bidauthorlist[i].append(k)
+			
+			counter = 0
+			with open('results/bidauthorship.out', 'w') as file:
+				for i in range(self.nr):
+					for j in self.bidauthorlist[i]:
+						if j > i and self.bidauthorship[j][i]:
+							counter += 1
+							print(i, j, file=file)
+			
+			print('num_2_cycles:', counter)
+
+			self.coauthorship = [defaultdict(bool) for _ in range(self.nr)]
+			self.coauthorlist = [[] for _ in range(self.nr)]
+			cnt = 0
+			for i1 in range(30):
+				for i in range(i1 * 250, (i1 + 1) * 250):
+					for j in range(i + 1, (i1 + 1) * 250):
+						now = 0.0
+						for k in self.bidlist[i]:
+							now += self.s[k][i] * self.s[k][j]
+						if np.random.binomial(1, 5 / self.nr * now) == 1:
+							self.coauthorship[i][j] = self.coauthorship[j][i] = True
+							self.coauthorlist[i].append(j)
+							self.coauthorlist[j].append(i)
+							cnt += 1
+			print('avg_coauthors:', cnt * 2 / self.nr, '!!!')
+
+
+		elif dataset.lower() == 'aamas2021':
 			data = np.load('datasets/aamas2021/aamas_text.npy')
 			(self.np, self.nr) = data.shape
 			self.s = []
@@ -54,10 +138,12 @@ class InputInstance:
 							self.bidauthorlist[i].append(k)
 
 			counter = 0
-			for i in range(self.nr):
-				for j in self.bidauthorlist[i]:
-					if j > i and self.bidauthorship[j][i]:
-						counter += 1
+			with open('results/bidauthorship.out', 'w') as file:
+				for i in range(self.nr):
+					for j in self.bidauthorlist[i]:
+						if j > i and self.bidauthorship[j][i]:
+							counter += 1
+							print(i, j, file=file)
 			
 			print('num_2_cycles:', counter)
 
@@ -99,6 +185,52 @@ class InputInstance:
 				self.ellr = 1
 
 			if dataset.lower() == 'iclr2018':
+				np.random.seed(123)
+
+				self.authorship = [[False for _ in range(self.nr)] for _ in range(self.np)]
+				self.authorlist = [[] for _ in range(self.np)]
+				self.paperlist = [[] for _ in range(self.nr)]
+
+				self.bid = [[False for _ in range(self.nr)] for _ in range(self.np)]
+				self.bidlist = [[] for _ in range(self.nr)]
+				self.bidauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
+				self.bidauthorlist = [[] for _ in range(self.nr)]
+
+				avg_bid = 0
+				avg_author = 0
+				for i in range(self.nr):
+					for j in range(self.np):
+						if self.s[j][i] < 0.05:
+							continue
+						if np.random.rand() < 0.9:
+							self.bid[j][i] = True
+							self.bidlist[i].append(j)
+							avg_bid += 1
+						elif np.random.rand() < 0.5:
+							self.authorship[j][i] = True
+							self.authorlist[j].append(i)
+							self.paperlist[i].append(j)
+							avg_author += 1
+				
+				print("avg_bid:", avg_bid / self.nr, "avg_author:", avg_author / self.nr)
+
+				for i in range(self.nr):
+					for j in self.bidlist[i]:
+						for k in self.authorlist[j]:
+							if not self.bidauthorship[i][k]:
+								self.bidauthorship[i][k] = True
+								self.bidauthorlist[i].append(k)
+
+				counter = 0
+				with open('results/bidauthorship.out', 'w') as file:
+					for i in range(self.nr):
+						for j in self.bidauthorlist[i]:
+							if j > i and self.bidauthorship[j][i]:
+								counter += 1
+								print(i, j, file=file)
+				
+				print('num_2_cycles:', counter)
+
 				self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
 				self.coauthorlist = [[] for _ in range(self.nr)]
 
@@ -106,7 +238,6 @@ class InputInstance:
 				A = torch.tensor(self.s)
 				B = torch.mm(A.T, A)
 				cnt = 0
-				np.random.seed(123)
 				for i in range(self.nr):
 					for j in range(i + 1, self.nr):
 						if np.random.binomial(1, 10 / self.nr * B[i][j]) == 1:

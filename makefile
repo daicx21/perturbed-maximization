@@ -1,5 +1,5 @@
 dcx_test:
-	time python python/speed.py AAMAS2021 PM-Q 0.9 0.1 0.25 0.0
+	time python3 python/dcx_test.py AAMAS2021 0.9 0.2
 
 main:
 	python3 python/main.py AAMAS2015 0.00
