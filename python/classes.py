@@ -97,8 +97,7 @@ class InputInstance:
 							self.coauthorlist[i].append(j)
 							self.coauthorlist[j].append(i)
 							cnt += 1
-			print('avg_coauthors:', cnt * 2 / self.nr, '!!!')
-
+			print('avg_coauthors:', cnt * 2 / self.nr)
 
 		elif dataset.lower() == 'aamas2021':
 			data = np.load('datasets/aamas2021/aamas_text.npy')
@@ -165,8 +164,73 @@ class InputInstance:
 						self.coauthorlist[i].append(j)
 						self.coauthorlist[j].append(i)
 						cnt += 1
-			print('avg_coauthors:', cnt * 2 / self.nr, '!!!')
-   
+			print('avg_coauthors:', cnt * 2 / self.nr)
+
+		elif dataset.lower() == 'wu':
+			import torch
+			tensor_data = torch.load("datasets/wu/wu_tensor_data.pl", weights_only=False)
+			(self.np, self.nr) = tensor_data['tpms'].T.shape
+			self.s = []
+			for row in tensor_data['tpms'].T:
+				self.s.append(row.tolist())
+			self.ellp = 4
+			self.ellr = 5
+
+			author_data = np.load('datasets/aamas2021/aamas_authorship.npy')
+			self.authorship = []
+			self.authorlist = [[] for _ in range(self.np)]
+			self.paperlist = [[] for _ in range(self.nr)]
+			for i, row in enumerate(author_data):
+				mask = row.astype(bool)
+				self.authorship.append(mask.tolist())
+				cols = np.nonzero(mask)[0]
+				for j in cols:
+					self.s[i][j] = 0.0
+					self.authorlist[i].append(j)
+					self.paperlist[j].append(i)
+
+			self.bid = [[False for _ in range(self.nr)] for _ in range(self.np)]
+			self.bidlist = []
+			self.bidauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
+			self.bidauthorlist = [[] for _ in range(self.nr)]
+			for i, row in enumerate(tensor_data['label']):
+				mask = row.astype(bool)
+				self.bidlist.append(mask.tolist())
+				cols = np.nonzero(mask)[0]
+				for j in cols:
+					self.bid[j][i] = True
+
+			for i in range(self.nr):
+				for j in self.bidlist[i]:
+					for k in self.authorlist[j]:
+						if not self.bidauthorship[i][k]:
+							self.bidauthorship[i][k] = True
+							self.bidauthorlist[i].append(k)
+
+			counter = 0
+			with open('results/bidauthorship.out', 'w') as file:
+				for i in range(self.nr):
+					for j in self.bidauthorlist[i]:
+						if j > i and self.bidauthorship[j][i]:
+							counter += 1
+							print(i, j, file=file)
+			
+			print('num_2_cycles:', counter)
+
+			self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
+			self.coauthorlist = [[] for _ in range(self.nr)]
+			A = torch.tensor(self.s)
+			B = torch.mm(A.T, A)
+			cnt = 0
+			for i in range(self.nr):
+				for j in range(i + 1, self.nr):
+					if np.random.binomial(1, min(0.01 / self.nr * B[i][j], 1.0)) == 1:
+						self.coauthorship[i][j] = self.coauthorship[j][i] = True
+						self.coauthorlist[i].append(j)
+						self.coauthorlist[j].append(i)
+						cnt += 1
+			print('avg_coauthors:', cnt * 2 / self.nr)
+
 		else:
 			file = open('datasets/' + dataset.lower() + '.in', 'r')
 			lines = file.readlines()
@@ -249,7 +313,7 @@ class InputInstance:
 							self.coauthorlist[i].append(j)
 							self.coauthorlist[j].append(i)
 							cnt += 1
-				print('avg_coauthors:', cnt * 2 / self.nr, '!!!')
+				print('avg_coauthors:', cnt * 2 / self.nr)
 
 		# Initialize maximum quality
 		if (init):
