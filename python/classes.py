@@ -15,11 +15,8 @@ class InputInstance:
 		self.dataset = dataset
 		if dataset.lower() == 'testlarge':
 			np.random.seed(100)
-			sz = 100
-			h1 = 150
-			h2 = 120
-			self.np = sz * h1
-			self.nr = sz * h2
+			self.np = 16000
+			self.nr = 14000
 			self.ellp = 4
 			self.ellr = 6
 			self.s = [defaultdict(float) for _ in range(self.np)]
@@ -31,39 +28,26 @@ class InputInstance:
 			self.biddedlist = [[] for _ in range(self.np)]
 			self.bidauthorship = [defaultdict(bool) for _ in range(self.nr)]
 			self.bidauthorlist = [[] for _ in range(self.nr)]
-			for i1 in range(sz):
-				for i2 in range(h1):
-					i = i1 * h1 + i2
-					bo = defaultdict(bool)
-
-					for j in range(90):
-						id = np.random.randint(0, h2) + i1 * h2
-						while bo[id] == True:
-							id = np.random.randint(0, h2) + i1 * h2
-						bo[id] = True
-						self.s[i][id] = np.random.uniform(0.8, 1.0)
-						self.bid[i][id] = True
-						self.bidlist[id].append(i)
-						self.biddedlist[i].append(id)
-					
-					for j in range(np.random.randint(0, 5)):
-						id = np.random.randint(0, h2) + i1 * h2
-						while bo[id] == True:
-							id = np.random.randint(0, h2) + i1 * h2
-						bo[id] = True
-						self.authorship[i][id] = True
-						self.authorlist[i].append(id)
-						self.paperlist[id].append(i)
-
-					for j in range(10):
+			for i in range(self.np):
+				bo = defaultdict(bool)
+				for j in range(700):
+					id = np.random.randint(0, self.nr)
+					while bo[id] == True:
 						id = np.random.randint(0, self.nr)
-						while bo[id] == True:
-							id = np.random.randint(0, self.nr)
-						bo[id] = True
-						self.s[i][id] = np.random.uniform(0.5, 1.0)
-						self.bid[i][id] = True
-						self.bidlist[id].append(i)
-						self.biddedlist[i].append(id)
+					bo[id] = True
+					hh = np.random.normal(0.6, 0.15)
+					while hh < 0.1 or hh > 1:
+						hh = np.random.normal(0.6, 0.15)
+					hhh = np.random.randint(0, 100)
+					if hhh < 2:
+						hh += 1
+					elif hhh < 4:
+						hh += 0.5
+					hh /= 2
+					self.s[i][id] = hh
+					self.bid[i][id] = True
+					self.bidlist[id].append(i)
+					self.biddedlist[i].append(id)
 			
 			for i in range(self.nr):
 				for j in self.bidlist[i]:
@@ -85,18 +69,19 @@ class InputInstance:
 			self.coauthorship = [defaultdict(bool) for _ in range(self.nr)]
 			self.coauthorlist = [[] for _ in range(self.nr)]
 			cnt = 0
-			for i1 in range(sz):
-				for i in range(i1 * h2, (i1 + 1) * h2):
-					for j in range(i + 1, (i1 + 1) * h2):
-						now = 0.0
-						for k in self.bidlist[i]:
-							now += self.s[k][i] * self.s[k][j]
-						if np.random.binomial(1, 5 / self.nr * now) == 1:
-							self.coauthorship[i][j] = True
-							self.coauthorship[j][i] = True
-							self.coauthorlist[i].append(j)
-							self.coauthorlist[j].append(i)
-							cnt += 1
+			for i in range(self.np):
+				bo = defaultdict(bool)
+				for j in range(10):
+					h1 = self.biddedlist[i][np.random.randint(0, len(self.biddedlist[i]))]
+					h2 = self.biddedlist[i][np.random.randint(0, len(self.biddedlist[i]))]
+					while h1 == h2 or self.coauthorship[h1][h2] == True:
+						h1 = self.biddedlist[i][np.random.randint(0, len(self.biddedlist[i]))]
+						h2 = self.biddedlist[i][np.random.randint(0, len(self.biddedlist[i]))]
+					self.coauthorship[h1][h2] = True
+					self.coauthorship[h2][h1] = True
+					self.coauthorlist[h1].append(h2)
+					self.coauthorlist[h2].append(h1)
+					cnt += 1
 			print('avg_coauthors:', cnt * 2 / self.nr)
 
 		elif dataset.lower() == 'aamas2021':
@@ -222,6 +207,7 @@ class InputInstance:
 			A = torch.tensor(self.s)
 			B = torch.mm(A.T, A)
 			cnt = 0
+			np.random.seed(123)
 			for i in range(self.nr):
 				for j in range(i + 1, self.nr):
 					if np.random.binomial(1, min(0.01 / self.nr * B[i][j], 1.0)) == 1:

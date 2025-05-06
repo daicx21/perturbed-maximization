@@ -199,13 +199,16 @@ if dataset.lower() == 'testlarge':
 
 else:
 	sum_coauthors = 0
+	sum_coauthors1 = 0
 	for i in range(instance.nr):
 		for j in range(i + 1, instance.nr):
 			if instance.coauthorship[i][j] == False:
 				continue
 			for k in range(instance.np):
 				sum_coauthors += assignment[k][i] * assignment[k][j]
-	print('sum_coauthors_prob:', sum_coauthors)
+				if assignment[k][i] + assignment[k][j] > 0.9- (1e-6):
+					sum_coauthors1 += assignment[k][i] * assignment[k][j]
+	print('sum_coauthors_prob:', sum_coauthors, sum_coauthors1)
 	
 	sum_cocoauthors = 0
 	for i in range(instance.nr):
