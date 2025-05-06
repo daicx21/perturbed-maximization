@@ -174,7 +174,7 @@ class InputInstance:
 			for row in tensor_data['tpms'].T:
 				self.s.append(row.tolist())
 			self.ellp = 4
-			self.ellr = 5
+			self.ellr = 6
 
 			author_data = np.load('datasets/aamas2021/aamas_authorship.npy')
 			self.authorship = []
@@ -193,12 +193,16 @@ class InputInstance:
 			self.bidlist = []
 			self.bidauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
 			self.bidauthorlist = [[] for _ in range(self.nr)]
+
+			counter = 0
 			for i, row in enumerate(tensor_data['label']):
 				mask = row.astype(bool)
 				self.bidlist.append(mask.tolist())
 				cols = np.nonzero(mask)[0]
 				for j in cols:
 					self.bid[j][i] = True
+					counter += 1
+			print('num_bids:', counter)
 
 			for i in range(self.nr):
 				for j in self.bidlist[i]:
@@ -214,7 +218,6 @@ class InputInstance:
 						if j > i and self.bidauthorship[j][i]:
 							counter += 1
 							print(i, j, file=file)
-			
 			print('num_2_cycles:', counter)
 
 			self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]

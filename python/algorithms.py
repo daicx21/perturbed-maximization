@@ -187,7 +187,7 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 	# Initialize Gurobi solver
 	import gurobipy as gp
 	solver = gp.Model()
-	solver.setParam('OutputFlag', 0)
+	solver.setParam('OutputFlag', 1)
 
 	if instance.dataset.lower() == 'testlarge':
 		objective  = 0.0
@@ -235,12 +235,8 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 				load += assignment[i][j]
 			solver.addConstr(load <= instance.ellr)
 
-		solver.params.Method = 1
 		# Run the Gurobi solver
-		import time
-		print(time.time())
 		solver.optimize()
-		print(time.time())
 	
 		# Return the resulting matching
 		for i in range(instance.np):
@@ -305,7 +301,6 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 			load += assignment[i][j]
 		solver.addConstr(load <= instance.ellr)
 
-	solver.params.Method = 1
 	# Run the Gurobi solver
 	import time
 	print(time.time())
