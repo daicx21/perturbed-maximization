@@ -188,41 +188,7 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 	# Initialize Gurobi solver
 	import gurobipy as gp
 	solver = gp.Model()
-	solver.setParam('OutputFlag', 1)
-
-	if instance.dataset.lower() == 'testlarge':
-		objective  = 0.0
-		assignment = [{} for i in range(instance.np)]
-
-		for i in range(instance.np):
-			for j in instance.biddedlist[i]:
-				x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
-				assignment[i][j] = x
-				objective += (x - beta * x * x) * instance.s[i][j]
-
-		# Add ellp & ellr as constraints
-		for i in range(instance.np):
-			assigned = 0.0
-			for j in instance.biddedlist[i]:
-				assigned += assignment[i][j]
-			solver.addConstr(assigned == instance.ellp)
-		for j in range(instance.nr):
-			load = 0.0
-			for i in instance.bidlist[j]:
-				load += assignment[i][j]
-			solver.addConstr(load <= instance.ellr)
-
-		solver.setObjective(objective, gp.GRB.MAXIMIZE)
-		# Run the Gurobi solver
-		solver.params.Method = 1
-		solver.optimize()
-	
-		# Return the resulting matching
-		for i in range(instance.np):
-			for j in assignment[i].keys():
-				assignment[i][j] = assignment[i][j].X
-		return assignment
-
+	solver.setParam('OutputFlag', 0)
 	# Initialize assignment matrix and objective function
 	objective  = 0.0
 	assignment = [[0.0 for j in range(instance.nr)] for i in range(instance.np)]
@@ -231,28 +197,6 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 			x = solver.addVar(lb = 0, ub = maxprob, name = f"{i} {j}")
 			assignment[i][j] = x
 			objective += (x - beta * x * x) * instance.s[i][j]
-
-	for j in range(instance.nr):
-		list_neighbours = [j]
-		for k in range(j + 1, instance.nr):
-			if instance.coauthorship[j][k] == True:
-				list_neighbours.append(k)
-		for i in range(instance.np):
-			hh = 0
-			for k in list_neighbours:
-				hh += assignment[i][k]
-			solver.addConstr(hh <= maxprob)
-	
-	map_bo = {}
-	for i in range(instance.nr):
-		for j in instance.bidauthorlist[i]:
-			if j > i and instance.bidauthorship[j][i]:
-				for k in instance.paperlist[i]:
-					for l in instance.paperlist[j]:
-						if instance.bid[l][i] and instance.bid[k][j]:
-							hh = assignment[l][i] + assignment[k][j]
-							solver.addConstr(hh <= maxprob)
-
 	# Add ellp & ellr as constraints
 	for i in range(instance.np):
 		assigned = 0.0
@@ -264,12 +208,9 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 		for i in range(instance.np):
 			load += assignment[i][j]
 		solver.addConstr(load <= instance.ellr)
-
 	solver.setObjective(objective, gp.GRB.MAXIMIZE)
 	# Run the Gurobi solver
-	import time
 	solver.optimize()
- 
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
 
