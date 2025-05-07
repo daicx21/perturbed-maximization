@@ -88,65 +88,71 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 	solver.setParam('OutputFlag', 1)
 
 	instance.deleted = [[False for _ in range(instance.nr)] for _ in range(instance.np)]
-	# for i in range(instance.np):
-	# 	r_list = sorted([j for j in range(instance.nr)], key=lambda x: instance.s[i][x])
-	# 	vis = [False for _ in range(instance.nr)]
-	# 	for j in reversed(r_list):
-	# 		vis[j] = True
-	# 		for k in instance.coauthorlist[j]:
-	# 			if vis[k] and not instance.deleted[i][k]:
-	# 				instance.deleted[i][j] = True
-	# 				break
+	for i in range(instance.np):
+		r_list = sorted([j for j in range(instance.nr)], key=lambda x: instance.s[i][x])
+		vis = [False for _ in range(instance.nr)]
+		for j in reversed(r_list):
+			vis[j] = True
+			for k in instance.coauthorlist[j]:
+				if vis[k] and not instance.deleted[i][k]:
+					instance.deleted[i][j] = True
+					break
 
-	# from collections import defaultdict
-	# map_2cycles = defaultdict(list)
-	# vis_pr_list = defaultdict(bool)
-	# pr_list = []
-	# for i in range(instance.nr):
-	# 	for j in instance.bidauthorlist[i]:
-	# 		if j > i and instance.bidauthorship[j][i]:
-	# 			for k in instance.paperlist[i]:
-	# 				for l in instance.paperlist[j]:
-	# 					if instance.bid[l][i] and instance.bid[k][j]:
-	# 						map_2cycles[(l, i)].append((k, j))
-	# 						map_2cycles[(k, j)].append((l, i))
-	# 						if not vis_pr_list[(l, i)]:
-	# 							vis_pr_list[(l, i)] = True
-	# 							pr_list.append((l, i))
-	# 						if not vis_pr_list[(k, j)]:
-	# 							vis_pr_list[(k, j)] = True
-	# 							pr_list.append((k, j))
+	from collections import defaultdict
+	map_2cycles = defaultdict(list)
+	vis_pr_list = defaultdict(bool)
+	pr_list = []
+	for i in range(instance.nr):
+		for j in instance.bidauthorlist[i]:
+			if j > i and instance.bidauthorship[j][i]:
+				for k in instance.paperlist[i]:
+					for l in instance.paperlist[j]:
+						if instance.bid[l][i] and instance.bid[k][j]:
+							map_2cycles[(l, i)].append((k, j))
+							map_2cycles[(k, j)].append((l, i))
+							if not vis_pr_list[(l, i)]:
+								vis_pr_list[(l, i)] = True
+								pr_list.append((l, i))
+							if not vis_pr_list[(k, j)]:
+								vis_pr_list[(k, j)] = True
+								pr_list.append((k, j))
 
-	# pr_list = sorted(pr_list, key=lambda x: instance.s[x[0]][x[1]])
-	# vis_pr_list = defaultdict(bool)
-	# for tup1 in reversed(pr_list):
-	# 	vis_pr_list[tup1] = True
-	# 	for tup2 in map_2cycles[tup1]:
-	# 		if vis_pr_list[tup2] and not instance.deleted[tup2[0]][tup2[1]]:
-	# 			instance.deleted[tup1[0]][tup1[1]] = True
-	# 			break
+	pr_list = sorted(pr_list, key=lambda x: instance.s[x[0]][x[1]])
+	vis_pr_list = defaultdict(bool)
+	for tup1 in reversed(pr_list):
+		vis_pr_list[tup1] = True
+		for tup2 in map_2cycles[tup1]:
+			if vis_pr_list[tup2] and not instance.deleted[tup2[0]][tup2[1]]:
+				instance.deleted[tup1[0]][tup1[1]] = True
+				break
 
-	# cnt1 = cnt2 = 0
-	# for i in range(instance.np):
-	# 	for j in range(instance.nr):
-	# 		if instance.deleted[i][j]:
-	# 			cnt1 += 1
-	# 		else:
-	# 			cnt2 += 1
-	# print('num_deleted: ', cnt1, ' num_non_deleted: ', cnt2)
-	# print()
+	cnt1 = cnt2 = 0
+	for i in range(instance.np):
+		for j in range(instance.nr):
+			if instance.deleted[i][j]:
+				cnt1 += 1
+			else:
+				cnt2 += 1
+	print('num_deleted: ', cnt1, ' num_non_deleted: ', cnt2)
+	print()
 
 	# Initialize assignment matrix and objective function
 	objective = 0
 	assignment = [[0 for j in range(instance.nr)] for i in range(instance.np)]
+	import numpy as np
+	xpts = []
+	ypts = []
+	now = 0
+	while now <= maxprob + (1e-6):
+		xpts.append(now)
+		ypts.append(- now + beta * now * now)
+		now += 0.1
 	for i in range(instance.np):
 		for j in range(instance.nr):
 			if instance.deleted[i][j]:
 				continue
 			assignment[i][j] = solver.addVar(lb = 0, ub = maxprob)
-			xpts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-			ypts = [(- xpts[k] + beta * xpts[k] * xpts[k]) * instance.s[i][j] for k in range(10)]
-			solver.setPWLObj(assignment[i][j], xpts, ypts)
+			solver.setPWLObj(assignment[i][j], xpts, [y * instance.s[i][j] for y in ypts])
 
 	for i in range(instance.np):
 		assigned = 0
@@ -330,23 +336,23 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 	deg = [len(instance.coauthorlist[i]) + 1 for i in range(instance.nr)]
 	res = [[instance.s[i][j] for j in range(instance.nr)] for i in range(instance.np)]
 
-	for i in range(instance.np):
-		for j in range(instance.nr):
-			now = instance.s[i][j] / deg[j]
-			for k in instance.coauthorlist[j]:
-				now = min(now, instance.s[i][k] / deg[k])
-			res[i][j] -= now
-			hhh = assignment[i][j]
-			for k in instance.coauthorlist[j]:
-				res[i][k] -= now
-				hhh += assignment[i][k]
-			hh = solver.addVar(lb = 0, ub = maxprob)
-			solver.addConstr(hh == hhh)
-			xpts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-			ypts = []
-			for k in range(10):
-				ypts.append(beta * xpts[k] * xpts[k] * now)
-			solver.setPWLObj(hh, xpts, ypts)
+	# for i in range(instance.np):
+	# 	for j in range(instance.nr):
+	# 		now = instance.s[i][j] / deg[j]
+	# 		for k in instance.coauthorlist[j]:
+	# 			now = min(now, instance.s[i][k] / deg[k])
+	# 		res[i][j] -= now
+	# 		hhh = assignment[i][j]
+	# 		for k in instance.coauthorlist[j]:
+	# 			res[i][k] -= now
+	# 			hhh += assignment[i][k]
+	# 		hh = solver.addVar(lb = 0, ub = maxprob)
+	# 		solver.addConstr(hh == hhh)
+	# 		xpts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+	# 		ypts = []
+	# 		for k in range(10):
+	# 			ypts.append(beta * xpts[k] * xpts[k] * now)
+	# 		solver.setPWLObj(hh, xpts, ypts)
 
 	for i in range(instance.np):
 		for j in range(instance.nr):
@@ -401,9 +407,16 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 
 	# Dual Simplex
 	solver.params.Method = 1
-
 	# Run the Gurobi solver
 	solver.optimize()
+
+	for i in range(instance.nr):
+		for j in range(i + 1, instance.nr):
+			if instance.coauthorship[i][j] == False:
+				continue
+			for k in range(instance.np):
+				if assignment[k][i].X > (1e-6) and assignment[k][j].X > (1e-6):
+					solver.addConstr(assignment[k][i] + assignment[k][j] )
  
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]

@@ -51,14 +51,18 @@ else:
 
 if dataset.lower() == 'testlarge':
 	sum_coauthors = 0
+	sum_coauthors_nonzero = 0
 	for i in range(instance.nr):
 		for j in instance.coauthorlist[i]:
 			if j <= i:
 				continue
 			for k in instance.bidlist[i]:
 				if instance.bid[k][j]:
+					if assignment[k][i] > (1e-6) and assignment[k][j] > (1e-6):
+						sum_coauthors_nonzero += 1
 					sum_coauthors += assignment[k][i] * assignment[k][j]
 	print('sum_coauthors_prob:', sum_coauthors)
+	print('sum_coauthors_prob_nonzero:', sum_coauthors_nonzero)
 	
 	sum_cocoauthors = 0
 	for i in range(instance.nr):
@@ -200,15 +204,18 @@ if dataset.lower() == 'testlarge':
 else:
 	sum_coauthors = 0
 	sum_coauthors1 = 0
+	sum_coauthors_nonzero = 0
 	for i in range(instance.nr):
 		for j in range(i + 1, instance.nr):
 			if instance.coauthorship[i][j] == False:
 				continue
 			for k in range(instance.np):
 				sum_coauthors += assignment[k][i] * assignment[k][j]
-				if assignment[k][i] + assignment[k][j] > 0.9- (1e-6):
+				if assignment[k][i] + assignment[k][j] > 0.9 - (1e-6):
 					sum_coauthors1 += assignment[k][i] * assignment[k][j]
-	print('sum_coauthors_prob:', sum_coauthors, sum_coauthors1)
+				if assignment[k][i] > (1e-6) and assignment[k][j] > (1e-6):
+					sum_coauthors_nonzero += 1
+	print('sum_coauthors_prob:', sum_coauthors, sum_coauthors1, sum_coauthors_nonzero)
 	
 	sum_cocoauthors = 0
 	for i in range(instance.nr):

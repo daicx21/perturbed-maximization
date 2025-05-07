@@ -161,7 +161,7 @@ class InputInstance:
 			self.ellp = 4
 			self.ellr = 6
 
-			author_data = np.load('datasets/aamas2021/aamas_authorship.npy')
+			author_data = np.load('datasets/wu/wu_authorship.npy')
 			self.authorship = []
 			self.authorlist = [[] for _ in range(self.np)]
 			self.paperlist = [[] for _ in range(self.nr)]
@@ -182,8 +182,8 @@ class InputInstance:
 			counter = 0
 			for i, row in enumerate(tensor_data['label']):
 				mask = row.astype(bool)
-				self.bidlist.append(mask.tolist())
 				cols = np.nonzero(mask)[0]
+				self.bidlist.append(cols)
 				for j in cols:
 					self.bid[j][i] = True
 					counter += 1
@@ -207,17 +207,14 @@ class InputInstance:
 
 			self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
 			self.coauthorlist = [[] for _ in range(self.nr)]
-			A = torch.tensor(self.s)
-			B = torch.mm(A.T, A)
 			cnt = 0
-			np.random.seed(123)
-			for i in range(self.nr):
-				for j in range(i + 1, self.nr):
-					if np.random.binomial(1, min(0.01 / self.nr * B[i][j], 1.0)) == 1:
-						self.coauthorship[i][j] = self.coauthorship[j][i] = True
-						self.coauthorlist[i].append(j)
-						self.coauthorlist[j].append(i)
-						cnt += 1
+			with open('datasets/wu/wu_coauthorship.in', 'r') as file:
+				for line in file:
+					i, j = map(int, line.strip().split())
+					self.coauthorship[i][j] = self.coauthorship[j][i] = True
+					self.coauthorlist[i].append(j)
+					self.coauthorlist[j].append(i)
+					cnt += 1
 			print('avg_coauthors:', cnt * 2 / self.nr)
 
 		else:

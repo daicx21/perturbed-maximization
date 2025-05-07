@@ -34,19 +34,24 @@ for i in range(5):
 	print(f'{metrics.name(i, style = 2)}: {metrics.calc(instance, assignment, i):.2f}')
 print()
 
-sum_cocoauthors = 0
+sum_coauthors = 0
 for i in range(instance.nr):
-	vis = [False for _ in range(instance.nr)]
-	for j in range(instance.nr):
+	for j in range(i + 1, instance.nr):
 		if instance.coauthorship[i][j] == False:
 			continue
-		for k in range(instance.nr):
-			if k <= i or vis[k] or instance.coauthorship[j][k] == False:
-				continue
-			vis[k] = True
-			for p in range(instance.np):
-				sum_cocoauthors += assignment[p][i] * assignment[p][k]
-print('sum_cocoauthors_prob:', sum_cocoauthors)
+		for k in range(instance.np):
+			sum_coauthors += assignment[k][i] * assignment[k][j]
+print('sum_coauthors_prob:', sum_coauthors)
+
+sum_2cycles = 0.0
+for i in range(instance.nr):
+	for j in instance.bidauthorlist[i]:
+		if j > i and instance.bidauthorship[j][i]:
+			for k in instance.paperlist[i]:
+				for l in instance.paperlist[j]:
+					if instance.bid[l][i] and instance.bid[k][j]:
+						sum_2cycles += assignment[l][i] * assignment[k][j]
+print('sum_2cycles_prob:', sum_2cycles)
 
 with open('results/output.out', 'w') as file:
 	print(instance.nr, instance.np, file=file)
@@ -65,21 +70,26 @@ with open('results/output_bvn.out', 'r') as file:
 		result = line.strip().split()
 		assignment_final[int(result[1]) - instance.nr][int(result[0])] = True
 
-for i in range(instance.np):
-	if assignment_final[i].count(True) != instance.ellp:
-		print(i, 'no!!!')
+# for i in range(instance.np):
+# 	if assignment_final[i].count(True) != instance.ellp:
+# 		print(i, 'no!!!')
 
-sum_cocoauthors = 0
+sum_coauthors = 0
 for i in range(instance.nr):
-	vis = [False for _ in range(instance.nr)]
-	for j in range(instance.nr):
+	for j in range(i + 1, instance.nr):
 		if instance.coauthorship[i][j] == False:
 			continue
-		for k in range(instance.nr):
-			if k <= i or vis[k] or instance.coauthorship[j][k] == False:
-				continue
-			vis[k] = True
-			for p in range(instance.np):
-				if assignment_final[p][i] == True and assignment_final[p][k] == True:
-					sum_cocoauthors += 1
-print('sum_cocoauthors:', sum_cocoauthors)
+		for k in range(instance.np):
+			if assignment_final[k][i] == True and assignment_final[k][j] == True:
+				sum_coauthors += 1
+print('sum_coauthors:', sum_coauthors)
+
+sum_2cycles = 0
+for i in range(instance.nr):
+	for j in instance.bidauthorlist[i]:
+		if j > i and instance.bidauthorship[j][i]:
+			for k in instance.paperlist[i]:
+				for l in instance.paperlist[j]:
+					if instance.bid[l][i] and instance.bid[k][j]:
+						sum_2cycles += int(assignment_final[l][i]) * int(assignment_final[k][j])
+print('sum_2cycles:', sum_2cycles)
