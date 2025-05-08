@@ -228,7 +228,7 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 			now = 0
 			while now <= maxprob * 2 + (1e-6):
 				xpts.append(now)
-				ypts.append(now * now * hh)
+				ypts.append(hh * now * now)
 				now += 0.1
 			solver.setPWLObj(newVar, xpts, ypts)
 			res[x[0]][x[1]] -= hh

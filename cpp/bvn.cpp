@@ -11,7 +11,7 @@ using namespace std;
 
 const int N = 100005, M = 50000005, one = 10000000, dig = 7, debug = 0; // N: maximum number of vertices, M: maximum number of edges
 
-unordered_map<int, bool> mp_bid[N];
+unordered_map<int, bool> mp_bid[N], mp_coauthor[N], mp_vio[N];
 
 int p, r, n, m; // p: number of papers, r: number of reviewers, n = p + r, m: number of edges
 int h[N], u[M], v[M], l[M], se[M], tot = 1; // (simulated) linked lists of adjacent edges; h: heads, (u, v): starting and ending points of an edge, l: pointer to next edge, se: whether edge has been visited, tot: total number of edges ever added
@@ -83,78 +83,57 @@ void re(int x) // remove edge with pointer x
 
 int gao(int y)
 {
-    int res = 0, h1 = ((u[y] <= n) ? u[y] : v[y]);
-    for (int j = top; j; j--)
-    {
-        int h2 = ((u[st[j]] <= n) ? u[st[j]] : v[st[j]]);
-        if ((top - j) & 1)
-        {
-            res -= mp_bid[h1][h2];
-        }
-        else
-        {
-            res += mp_bid[h1][h2];
-        }
-    }
-    return res;
-}
-
-int gao1(int x, int y, int p) // x: current vertex, y: previous edge, p: whether finding a path
-{
-    if(!hi[x]) // x is a reviewer
-    {
-        if(s[x]) // found a cycle
-        {
-            return 1;
-        }
-
-        if(y && p && (!in(c[x]))) // found a path
-        {
-            return 1;
-        }
-    }
-    else // x is a paper
-    {
-        int yi = fi(x, ri[u[y]]); // set yi to institution of incoming edge
-        
-        if(si[yi]) // found an ``even'' cycle (never happens when y = yi = 0)
-        {
-            return 1;
-        }
-
-        if(s[x] && !in(ci[yi])) // found an ``odd'' cycle
-        {
-            return 1;
-        }
-
-        if(y && p && (!in(c[x])) && (!in(ci[yi]))) // found a path
-        {
-            return 1;
-        }
-    }
-    return 0;
+    int h1 = ((u[y] <= r) ? u[y] : v[y]);
+    int hh1;
+    if (h1 == u[y]) hh1 = v[y] - r;
+    else hh1 = u[y] - r;
+    if (!top) return mp_vio[h1][hh1];
+    int h2 = ((u[st[top]] <= r) ? u[st[top]] : v[st[top]]);
+    int hh2;
+    if (h2 == u[st[top]]) hh2 = v[st[top]] - r;
+    else hh2 = u[st[top]] - r;
+    if (h1 == h2) return mp_vio[h1][hh1];
+    if (!mp_vio[h2][hh2]) return !mp_vio[h1][hh1];
+    return mp_coauthor[h1][h2];
 }
 
 int tr(int x, int i, int p) // find a fractional edge adjacent to x not visited yet belonging to institution i (or any insitution with fractional paper-instituion load when i = 0)
 {
+    int mx = -inf, res = 0;
     if(!hi[x])
     {
-        for(int j = h[x]; j; j = l[j])
-            if(!se[j]) return j;
+        for (int j = h[x]; j; j = l[j])
+            if (!se[j])
+            {
+                int hh = gao(j);
+                if (res == 0 || hh > mx)
+                {
+                    mx = hh;
+                    res = j;
+                }
+            }
     }
-    else if(!i)
+    else if (!i)
     {
-        for(int j = hi[x]; j; j = li[j])
-            if(!in(ci[j]))
+        for (int j = hi[x]; j; j = li[j])
+            if (!in(ci[j]))
             {
                 int t = tr(x, vi[j], p);
-                if(t) return t;
+                if (t) return t;
             }
     }
     else
         for(int j = h[x]; j; j = l[j])
-            if(ri[v[j]] == i && !se[j]) return j;
-    return 0;
+            if(ri[v[j]] == i && !se[j])
+            {
+                int hh = gao(j);
+                if (res == 0 || hh > mx)
+                {
+                    mx = hh;
+                    res = j;
+                }
+            }
+    return res;
 }
 
 void cnr(int x) // if edge with pointer x has flow 0 or 1, then remove it and its co-edge
@@ -185,7 +164,6 @@ map<int,int> mp;
 
 int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether finding a path
 {
-    if(debug) printf("%d %d %d %d\n", x, y, p, top);
     if(y) st[++top] = y; // push incoming edge into stack
     int ret = 0, t = 0, yi = 0, zi = 0;
 
@@ -369,6 +347,10 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
     return ret;
 }
 
+int C[N],H[N];
+
+inline bool cmp(const int &x, const int &y) { return C[x] > C[y]; }
+
 int main()
 {
     srand(time(0)); // set random seed to current time
@@ -383,9 +365,8 @@ int main()
     for(int i = 1; i <= r; i++) scanf("%d", &ri[i]);
     // for(int i = 1; i <=r; i++) ri[i] = rand() % 2 + 1;
 
-    for(int i = 0; i < p * r; i++)
+    while (~scanf("%d%d%s", &x, &y, sz)) // read in flow as a string
     {
-        scanf("%d%d%s", &x, &y, sz); // read in flow as a string
         ++x;
         ++y;
 
@@ -410,29 +391,47 @@ int main()
         }
     }
 
-    freopen("./results/bidauthorship", "r", stdin);
+    freopen("./results/bidauthorship.out", "r", stdin);
     while (~scanf("%d%d", &x, &y))
     {
         mp_bid[x + 1][y + 1] = true;
         mp_bid[y + 1][x + 1] = true;
     }
 
+    freopen("./results/coauthorship.out", "r", stdin);
+    while (~scanf("%d%d", &x, &y))
+    {
+        mp_coauthor[x + 1][y + 1] = true;
+        mp_coauthor[y + 1][x + 1] = true;
+    }
+
+    for (int i = 1; i <= r; i++) C[i] = 0, H[i] = i;
+
+    freopen("./results/coauthorvio.out", "r", stdin);
+    while (~scanf("%d%d", &x, &y))
+    {
+        mp_vio[x + 1][y + 1] = true;
+        C[x + 1] ++;
+    }
+
+    sort(H + 1, H + r + 1, cmp);
+
     while(m) // while there are still fractional edges left
     {
         if(debug) printf("%d\n", m);
         memset(s, 0, sizeof(s)); // mark all vertices unvisited
-        for(int i = 1; i <= n; i++) // try to find paths / cycles starting from vertices with fractional load
-            if(!in(c[i]))
+        for(int i = 1; i <= r; i++) // try to find paths / cycles starting from vertices with fractional load
+            if(!in(c[H[i]]))
             {
                 top = 0;
-                if(go(i, 0, 1)) break;
+                if(go(H[i], 0, 1)) {break;}
             }
 
         memset(s, 0, sizeof(s)); // mark all vertices unvisited
-        for(int i = 1; i <= n; i++) // now try to find cycles only starting from all vertices
+        for(int i = 1; i <= r; i++) // now try to find cycles only starting from all vertices
         {
             top = 0;
-            if(go(i, 0, 0)) break;
+            if(go(H[i], 0, 0)) {break;}
         }
     }
 

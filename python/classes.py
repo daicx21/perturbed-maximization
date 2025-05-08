@@ -57,13 +57,10 @@ class InputInstance:
 							self.bidauthorlist[i].append(k)
 			
 			counter = 0
-			with open('results/bidauthorship.out', 'w') as file:
-				for i in range(self.nr):
-					for j in self.bidauthorlist[i]:
-						if j > i and self.bidauthorship[j][i]:
-							counter += 1
-							print(i, j, file=file)
-			
+			for i in range(self.nr):
+				for j in self.bidauthorlist[i]:
+					if j > i and self.bidauthorship[j][i]:
+						counter += 1
 			print('num_2_cycles:', counter)
 
 			self.coauthorship = [defaultdict(bool) for _ in range(self.nr)]
@@ -126,13 +123,10 @@ class InputInstance:
 							self.bidauthorlist[i].append(k)
 
 			counter = 0
-			with open('results/bidauthorship.out', 'w') as file:
-				for i in range(self.nr):
-					for j in self.bidauthorlist[i]:
-						if j > i and self.bidauthorship[j][i]:
-							counter += 1
-							print(i, j, file=file)
-			
+			for i in range(self.nr):
+				for j in self.bidauthorlist[i]:
+					if j > i and self.bidauthorship[j][i]:
+						counter += 1
 			print('num_2_cycles:', counter)
 
 			self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
@@ -203,12 +197,10 @@ class InputInstance:
 							self.bidauthorlist[i].append(k)
 
 			counter = 0
-			with open('results/bidauthorship.out', 'w') as file:
-				for i in range(self.nr):
-					for j in self.bidauthorlist[i]:
-						if j > i and self.bidauthorship[j][i]:
-							counter += 1
-							print(i, j, file=file)
+			for i in range(self.nr):
+				for j in self.bidauthorlist[i]:
+					if j > i and self.bidauthorship[j][i]:
+						counter += 1
 			print('num_2_cycles:', counter)
 
 			self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
@@ -287,13 +279,10 @@ class InputInstance:
 								self.bidauthorlist[i].append(k)
 
 				counter = 0
-				with open('results/bidauthorship.out', 'w') as file:
-					for i in range(self.nr):
-						for j in self.bidauthorlist[i]:
-							if j > i and self.bidauthorship[j][i]:
-								counter += 1
-								print(i, j, file=file)
-				
+				for i in range(self.nr):
+					for j in self.bidauthorlist[i]:
+						if j > i and self.bidauthorship[j][i]:
+							counter += 1
 				print('num_2_cycles:', counter)
 
 				self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
