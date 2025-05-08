@@ -184,55 +184,35 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 	# print('num_deleted: ', cnt1, ' num_non_deleted: ', cnt2)
 	# print()
 
-	from collections import defaultdict
-	deg1 = defaultdict(int)
-	for i in range(instance.nr):
-		for j in instance.bidauthorlist[i]:
-			if instance.bidauthorship[j][i]:
-				for k in instance.paperlist[i]:
-					if instance.bid[k][j]:
-						deg1[(k, j)] += 1
-
-	map_2cycles = defaultdict(list)
-	vis_pr_list = defaultdict(bool)
-	deg = defaultdict(int)
-	pr_list = []
-	for i in range(instance.nr):
-		for j in instance.bidauthorlist[i]:
-			if j > i and instance.bidauthorship[j][i]:
-				for k in instance.paperlist[i]:
-					for l in instance.paperlist[j]:
-						if instance.bid[l][i] and instance.bid[k][j]:
-							map_2cycles[(l, i)].append((k, j))
-							if deg[(l, i)] == 0:
-								pr_list.append((l, i))
-							if deg[(k, j)] == 0:
-								pr_list.append((k, j))
-							deg[(l, i)] += 1
-							deg[(k, j)] += 1
-
-	res = [[instance.s[i][j] * beta for j in range(instance.nr)] for i in range(instance.np)]
 	assignment = [[0 for j in range(instance.nr)] for i in range(instance.np)]
 	for i in range(instance.np):
 		for j in range(instance.nr):
 			if not instance.deleted[i][j] and instance.s[i][j] > 0:
 				assignment[i][j] = solver.addVar(lb = 0, ub = maxprob)
 
-	for x in pr_list:
-		for y in map_2cycles[x]:
-			newVar = solver.addVar(lb = 0, ub = maxprob * 2)
-			solver.addConstr(assignment[x[0]][x[1]] + assignment[y[0]][y[1]] == newVar)
-			xpts = []
-			ypts = []
-			hh = max(min(0.5 * beta, 0.5 * beta), 1e-3)
-			now = 0
-			while now <= maxprob * 2 + (1e-6):
-				xpts.append(now)
-				ypts.append(hh * now * now)
-				now += 0.1
-			solver.setPWLObj(newVar, xpts, ypts)
-			res[x[0]][x[1]] -= hh
-			res[y[0]][y[1]] -= hh
+	for j in range(instance.nr):
+		list_neighbours = instance.coauthorlist[j].copy()
+		list_neighbours.append(j)
+		for i in range(instance.np):
+			hh = 0
+			for k in list_neighbours:
+				if instance.bid[i][k]:
+					hh += assignment[i][k]
+			hhh = solver.addVar()
+			solver.addConstr(hhh == hh)
+			solver.setPWLObj(hhh, [0, 1, 2], [0, 0, 0.2])
+
+	from collections import defaultdict
+	mp_2cycle = defaultdict(bool)
+	for i in range(instance.nr):
+		for j in instance.bidauthorlist[i]:
+			if j > i and instance.bidauthorship[j][i]:
+				for k in instance.paperlist[i]:
+					for l in instance.paperlist[j]:
+						if instance.bid[l][i] and instance.bid[k][j]:
+							if not mp_2cycle[(l, i, k, j)]:
+								solver.addConstr(assignment[l][i] + assignment[k][j] <= 1)
+								mp_2cycle[(l, i, k, j)] = True
 
 	# Initialize assignment matrix and objective function
 	for i in range(instance.np):
@@ -242,9 +222,10 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 			xpts = []
 			ypts = []
 			now = 0
+			val = max(1e-3, instance.s[i][j] * beta)
 			while now <= maxprob + (1e-6):
 				xpts.append(now)
-				ypts.append(- now * instance.s[i][j] + now * now * max(1e-3, res[i][j]))
+				ypts.append(- now * instance.s[i][j] + now * now * val)
 				now += 0.1
 			solver.setPWLObj(assignment[i][j], xpts, ypts)
 
@@ -403,7 +384,6 @@ def PMPL_second(instance, beta = 0.5, maxprob = 1.0):
 					ypts.append(- (now - beta * now * now) * instance.s[i][j])
 				solver.setPWLObj(x, xpts, ypts)
 
-		import numpy as np
 		for j in range(instance.nr):
 			list_neighbours = instance.coauthorlist[j].copy()
 			list_neighbours.append(j)

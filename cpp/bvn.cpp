@@ -87,6 +87,10 @@ int gao(int y)
     int hh1;
     if (h1 == u[y]) hh1 = v[y] - r;
     else hh1 = u[y] - r;
+    for (int j=top;j;j--)
+    {
+        int h2 = ((u[st[j]] <= r) ? u[st[j]] : v[st[j]]);
+    }
     if (!top) return mp_vio[h1][hh1];
     int h2 = ((u[st[top]] <= r) ? u[st[top]] : v[st[top]]);
     int hh2;

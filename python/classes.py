@@ -205,20 +205,29 @@ class InputInstance:
 
 			self.coauthorship = [[False for _ in range(self.nr)] for _ in range(self.nr)]
 			self.coauthorlist = [[] for _ in range(self.nr)]
-			cnt = 0
-			with open('datasets/wu/wu_coauthorship.in', 'r') as file:
-				for line in file:
-					i, j = map(int, line.strip().split())
-					self.coauthorship[i][j] = self.coauthorship[j][i] = True
-					self.coauthorlist[i].append(j)
-					self.coauthorlist[j].append(i)
-					cnt += 1
-			print('avg_coauthors:', cnt * 2 / self.nr)
-
+			for i in range(self.np):
+				for j in range(len(self.authorlist[i])):
+					for k in range(j + 1, len(self.authorlist[i])):
+						if not self.coauthorship[self.authorlist[i][j]][self.authorlist[i][k]]:
+							self.coauthorship[self.authorlist[i][j]][self.authorlist[i][k]] = True
+							self.coauthorship[self.authorlist[i][k]][self.authorlist[i][j]] = True
+							self.coauthorlist[self.authorlist[i][j]].append(self.authorlist[i][k])
+							self.coauthorlist[self.authorlist[i][k]].append(self.authorlist[i][j])
 			for i in range(self.nr):
 				for j in self.coauthorlist[i]:
 					for k in self.paperlist[j]:
 						self.s[k][i] = 0
+			with open('datasets/wu/wu_coauthorship.in', 'r') as file:
+				for line in file:
+					i, j = map(int, line.strip().split())
+					if not self.coauthorship[i][j]:
+						self.coauthorship[i][j] = self.coauthorship[j][i] = True
+						self.coauthorlist[i].append(j)
+						self.coauthorlist[j].append(i)
+			cnt = 0
+			for i in range(self.nr):
+				cnt += len(self.coauthorlist[i])
+			print('avg_coauthors:', cnt * 2 / self.nr)
 
 		else:
 			file = open('datasets/' + dataset.lower() + '.in', 'r')
