@@ -73,109 +73,6 @@ def PLRA(instance, maxprob = 1.0):
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
 
-def ours(instance, beta = 0.5, maxprob = 1.0):
-	# PM-Quadratic Gurobi implementation
-	# 	The perturbation function used is f(x) = x - beta * x ^ 2
-	# Inputs arguments:
-	# 	instance: the input instance
-	#   beta:     the parameter used in the perturbation function
-	# 	maxprob:  maximum allowed assignment probability
-	# Output: an assignment matrix in nested list
-
-	# Initialize Gurobi solver
-	import gurobipy as gp
-	solver = gp.Model()
-	solver.setParam('OutputFlag', 1)
-
-	instance.deleted = [[False for _ in range(instance.nr)] for _ in range(instance.np)]
-	for i in range(instance.np):
-		r_list = sorted([j for j in range(instance.nr)], key=lambda x: instance.s[i][x])
-		vis = [False for _ in range(instance.nr)]
-		for j in reversed(r_list):
-			vis[j] = True
-			for k in instance.coauthorlist[j]:
-				if vis[k] and not instance.deleted[i][k]:
-					instance.deleted[i][j] = True
-					break
-
-	from collections import defaultdict
-	map_2cycles = defaultdict(list)
-	vis_pr_list = defaultdict(bool)
-	pr_list = []
-	for i in range(instance.nr):
-		for j in instance.bidauthorlist[i]:
-			if j > i and instance.bidauthorship[j][i]:
-				for k in instance.paperlist[i]:
-					for l in instance.paperlist[j]:
-						if instance.bid[l][i] and instance.bid[k][j]:
-							map_2cycles[(l, i)].append((k, j))
-							map_2cycles[(k, j)].append((l, i))
-							if not vis_pr_list[(l, i)]:
-								vis_pr_list[(l, i)] = True
-								pr_list.append((l, i))
-							if not vis_pr_list[(k, j)]:
-								vis_pr_list[(k, j)] = True
-								pr_list.append((k, j))
-
-	pr_list = sorted(pr_list, key=lambda x: instance.s[x[0]][x[1]])
-	vis_pr_list = defaultdict(bool)
-	for tup1 in reversed(pr_list):
-		vis_pr_list[tup1] = True
-		for tup2 in map_2cycles[tup1]:
-			if vis_pr_list[tup2] and not instance.deleted[tup2[0]][tup2[1]]:
-				instance.deleted[tup1[0]][tup1[1]] = True
-				break
-
-	cnt1 = cnt2 = 0
-	for i in range(instance.np):
-		for j in range(instance.nr):
-			if instance.deleted[i][j]:
-				cnt1 += 1
-			else:
-				cnt2 += 1
-	print('num_deleted: ', cnt1, ' num_non_deleted: ', cnt2)
-	print()
-
-	# Initialize assignment matrix and objective function
-	objective = 0
-	assignment = [[0 for j in range(instance.nr)] for i in range(instance.np)]
-	import numpy as np
-	xpts = []
-	ypts = []
-	now = 0
-	while now <= maxprob + (1e-6):
-		xpts.append(now)
-		ypts.append(- now + beta * now * now)
-		now += 0.1
-	for i in range(instance.np):
-		for j in range(instance.nr):
-			if instance.deleted[i][j]:
-				continue
-			assignment[i][j] = solver.addVar(lb = 0, ub = maxprob)
-			solver.setPWLObj(assignment[i][j], xpts, [y * instance.s[i][j] for y in ypts])
-
-	for i in range(instance.np):
-		assigned = 0
-		for j in range(instance.nr):
-			assigned += assignment[i][j]
-		solver.addConstr(assigned == instance.ellp)
-	for j in range(instance.nr):
-		load = 0
-		for i in range(instance.np):
-			load += assignment[i][j]
-		solver.addConstr(load <= instance.ellr)
-
-	solver.params.Method = 1
-	# Run the Gurobi solver
-	solver.optimize()
- 
-	# Return the resulting matching
-	for i in range(instance.np):
-		for j in range(instance.nr):
-			if not instance.deleted[i][j]:
-				assignment[i][j] = assignment[i][j].X
-	return assignment
-
 def PMQ(instance, beta = 0.5, maxprob = 1.0):
 	# PM-Quadratic Gurobi implementation
 	# 	The perturbation function used is f(x) = x - beta * x ^ 2
@@ -213,6 +110,165 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 	solver.optimize()
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
+
+def ours(instance, beta = 0.5, maxprob = 1.0):
+	# PM-Quadratic Gurobi implementation
+	# 	The perturbation function used is f(x) = x - beta * x ^ 2
+	# Inputs arguments:
+	# 	instance: the input instance
+	#   beta:     the parameter used in the perturbation function
+	# 	maxprob:  maximum allowed assignment probability
+	# Output: an assignment matrix in nested list
+
+	# Initialize Gurobi solver
+	import gurobipy as gp
+	solver = gp.Model()
+	solver.setParam('OutputFlag', 1)
+
+	instance.deleted = [[False for _ in range(instance.nr)] for _ in range(instance.np)]
+	# for i in range(instance.np):
+	# 	r_list = sorted([j for j in range(instance.nr)], key=lambda x: instance.s[i][x])
+	# 	vis = [False for _ in range(instance.nr)]
+	# 	for j in reversed(r_list):
+	# 		vis[j] = True
+	# 		for k in instance.coauthorlist[j]:
+	# 			if vis[k] and not instance.deleted[i][k]:
+	# 				instance.deleted[i][j] = True
+	# 				break
+
+	# from collections import defaultdict
+	# map_2cycles = defaultdict(list)
+	# vis_pr_list = defaultdict(bool)
+	# deg = defaultdict(int)
+	# pr_list = []
+	# counter = 0
+	# for i in range(instance.nr):
+	# 	for j in instance.bidauthorlist[i]:
+	# 		if j > i and instance.bidauthorship[j][i]:
+	# 			for k in instance.paperlist[i]:
+	# 				for l in instance.paperlist[j]:
+	# 					if instance.bid[l][i] and instance.bid[k][j]:
+	# 						counter += 1
+	# 						map_2cycles[(l, i)].append((k, j))
+	# 						map_2cycles[(k, j)].append((l, i))
+	# 						deg[(l, i)] += 1
+	# 						deg[(k, j)] += 1
+	# 						if not vis_pr_list[(l, i)]:
+	# 							vis_pr_list[(l, i)] = True
+	# 							pr_list.append((l, i))
+	# 						if not vis_pr_list[(k, j)]:
+	# 							vis_pr_list[(k, j)] = True
+	# 							pr_list.append((k, j))
+	# print('actual_2_cycles:', counter)
+
+	# for x in pr_list:
+	# 	if deg[x] > 1:
+	# 		print(x, map_2cycles[x], 233)
+
+	# pr_list = sorted(pr_list, key=lambda x: instance.s[x[0]][x[1]])
+	# vis_pr_list = defaultdict(bool)
+	# for tup1 in reversed(pr_list):
+	# 	vis_pr_list[tup1] = True
+	# 	for tup2 in map_2cycles[tup1]:
+	# 		if vis_pr_list[tup2] and not instance.deleted[tup2[0]][tup2[1]]:
+	# 			instance.deleted[tup1[0]][tup1[1]] = True
+	# 			break
+
+	# cnt1 = cnt2 = 0
+	# for i in range(instance.np):
+	# 	for j in range(instance.nr):
+	# 		if instance.deleted[i][j]:
+	# 			cnt1 += 1
+	# 		else:
+	# 			cnt2 += 1
+	# print('num_deleted: ', cnt1, ' num_non_deleted: ', cnt2)
+	# print()
+
+	from collections import defaultdict
+	deg1 = defaultdict(int)
+	for i in range(instance.nr):
+		for j in instance.bidauthorlist[i]:
+			if instance.bidauthorship[j][i]:
+				for k in instance.paperlist[i]:
+					if instance.bid[k][j]:
+						deg1[(k, j)] += 1
+
+	map_2cycles = defaultdict(list)
+	vis_pr_list = defaultdict(bool)
+	deg = defaultdict(int)
+	pr_list = []
+	for i in range(instance.nr):
+		for j in instance.bidauthorlist[i]:
+			if j > i and instance.bidauthorship[j][i]:
+				for k in instance.paperlist[i]:
+					for l in instance.paperlist[j]:
+						if instance.bid[l][i] and instance.bid[k][j]:
+							map_2cycles[(l, i)].append((k, j))
+							if deg[(l, i)] == 0:
+								pr_list.append((l, i))
+							if deg[(k, j)] == 0:
+								pr_list.append((k, j))
+							deg[(l, i)] += 1
+							deg[(k, j)] += 1
+
+	res = [[instance.s[i][j] * beta for j in range(instance.nr)] for i in range(instance.np)]
+	assignment = [[0 for j in range(instance.nr)] for i in range(instance.np)]
+	for i in range(instance.np):
+		for j in range(instance.nr):
+			if not instance.deleted[i][j] and instance.s[i][j] > 0:
+				assignment[i][j] = solver.addVar(lb = 0, ub = maxprob)
+
+	for x in pr_list:
+		for y in map_2cycles[x]:
+			newVar = solver.addVar(lb = 0, ub = maxprob * 2)
+			solver.addConstr(assignment[x[0]][x[1]] + assignment[y[0]][y[1]] == newVar)
+			xpts = []
+			ypts = []
+			hh = max(min(0.5 * beta, 0.5 * beta), 1e-3)
+			now = 0
+			while now <= maxprob * 2 + (1e-6):
+				xpts.append(now)
+				ypts.append(now * now * hh)
+				now += 0.1
+			solver.setPWLObj(newVar, xpts, ypts)
+			res[x[0]][x[1]] -= hh
+			res[y[0]][y[1]] -= hh
+
+	# Initialize assignment matrix and objective function
+	for i in range(instance.np):
+		for j in range(instance.nr):
+			if instance.deleted[i][j] or instance.s[i][j] == 0:
+				continue
+			xpts = []
+			ypts = []
+			now = 0
+			while now <= maxprob + (1e-6):
+				xpts.append(now)
+				ypts.append(- now * instance.s[i][j] + now * now * max(1e-3, res[i][j]))
+				now += 0.1
+			solver.setPWLObj(assignment[i][j], xpts, ypts)
+
+	for i in range(instance.np):
+		assigned = 0
+		for j in range(instance.nr):
+			assigned += assignment[i][j]
+		solver.addConstr(assigned == instance.ellp)
+	for j in range(instance.nr):
+		load = 0
+		for i in range(instance.np):
+			load += assignment[i][j]
+		solver.addConstr(load <= instance.ellr)
+
+	solver.params.Method = 1
+	# Run the Gurobi solver
+	solver.optimize()
+ 
+	# Return the resulting matching
+	for i in range(instance.np):
+		for j in range(instance.nr):
+			if not instance.deleted[i][j] and instance.s[i][j] > 0:
+				assignment[i][j] = assignment[i][j].X
+	return assignment
 
 def PMPL(instance, beta = 0.5, maxprob = 1.0):
 	# PM-Quadratic Gurobi implementation
@@ -277,62 +333,32 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 	deg = [len(instance.coauthorlist[i]) + 1 for i in range(instance.nr)]
 	res = [[instance.s[i][j] for j in range(instance.nr)] for i in range(instance.np)]
 
-	# for i in range(instance.np):
-	# 	for j in range(instance.nr):
-	# 		now = instance.s[i][j] / deg[j]
-	# 		for k in instance.coauthorlist[j]:
-	# 			now = min(now, instance.s[i][k] / deg[k])
-	# 		res[i][j] -= now
-	# 		hhh = assignment[i][j]
-	# 		for k in instance.coauthorlist[j]:
-	# 			res[i][k] -= now
-	# 			hhh += assignment[i][k]
-	# 		hh = solver.addVar(lb = 0, ub = maxprob)
-	# 		solver.addConstr(hh == hhh)
-	# 		xpts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-	# 		ypts = []
-	# 		for k in range(10):
-	# 			ypts.append(beta * xpts[k] * xpts[k] * now)
-	# 		solver.setPWLObj(hh, xpts, ypts)
+	for i in range(instance.np):
+		for j in range(instance.nr):
+			now = instance.s[i][j] / deg[j]
+			for k in instance.coauthorlist[j]:
+				now = min(now, instance.s[i][k] / deg[k])
+			now = max(now, 1e-3)
+			res[i][j] -= now
+			hhh = assignment[i][j]
+			for k in instance.coauthorlist[j]:
+				res[i][k] -= now
+				hhh += assignment[i][k]
+			hh = solver.addVar(lb = 0, ub = maxprob)
+			solver.addConstr(hh == hhh)
+			xpts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+			ypts = []
+			for k in range(10):
+				ypts.append(beta * xpts[k] * xpts[k] * now)
+			solver.setPWLObj(hh, xpts, ypts)
 
 	for i in range(instance.np):
 		for j in range(instance.nr):
 			xpts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 			ypts = []
 			for k in range(10):
-				ypts.append(- xpts[k] * instance.s[i][j] + beta * xpts[k] * xpts[k] * max(res[i][j], 0))
+				ypts.append(- xpts[k] * instance.s[i][j] + beta * xpts[k] * xpts[k] * max(res[i][j], 1e-3))
 			solver.setPWLObj(assignment[i][j], xpts, ypts)
-
-	# for j in range(instance.nr):
-	# 	list_neighbours = [j]
-	# 	for k in range(j + 1, instance.nr):
-	# 		if instance.coauthorship[j][k] == True:
-	# 			list_neighbours.append(k)
-	# 	for i in range(instance.np):
-	# 		hh = 0
-	# 		for k in list_neighbours:
-	# 			hh += assignment[i][k]
-	# 		solver.addConstr(hh <= maxprob)
-	
-	# map_bo = {}
-	# for i in range(instance.nr):
-	# 	for j in instance.bidauthorlist[i]:
-	# 		if j > i and instance.bidauthorship[j][i]:
-	# 			for k in instance.paperlist[i]:
-	# 				for l in instance.paperlist[j]:
-	# 					if instance.bid[l][i] and instance.bid[k][j]:
-	# 						# if map_bo.get((l, i)) != True:
-	# 						# 	map_bo[(l, i)] = True
-	# 						# 	hh = solver.addVar(lb = 0, ub = maxprob)
-	# 						# 	solver.addConstr(hh == assignment[l][i])
-	# 						# 	solver.setPWLObj(hh, [0, maxprob], [0, maxprob * beta * instance.s[l][i]])
-	# 						# if map_bo.get((k, j)) != True:
-	# 						# 	map_bo[(k, j)] = True
-	# 						# 	hh = solver.addVar(lb = 0, ub = maxprob)
-	# 						# 	solver.addConstr(hh == assignment[k][j])
-	# 						# 	solver.setPWLObj(hh, [0, maxprob], [0, maxprob * beta * instance.s[k][j]])
-	# 						hh = assignment[l][i] + assignment[k][j]
-	# 						solver.addConstr(hh <= maxprob)
 
 	# Add ellp & ellr as constraints
 	for i in range(instance.np):
@@ -350,14 +376,6 @@ def PMPL(instance, beta = 0.5, maxprob = 1.0):
 	solver.params.Method = 1
 	# Run the Gurobi solver
 	solver.optimize()
-
-	for i in range(instance.nr):
-		for j in range(i + 1, instance.nr):
-			if instance.coauthorship[i][j] == False:
-				continue
-			for k in range(instance.np):
-				if assignment[k][i].X > (1e-6) and assignment[k][j].X > (1e-6):
-					solver.addConstr(assignment[k][i] + assignment[k][j] )
  
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]

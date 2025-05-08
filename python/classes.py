@@ -185,7 +185,13 @@ class InputInstance:
 				cols = np.nonzero(mask)[0]
 				self.bidlist.append(cols)
 				for j in cols:
+					if row[j] == 1:
+						continue
 					self.bid[j][i] = True
+					if row[j] == 2:
+						self.s[j][i] += 0.5
+					else:
+						self.s[j][i] += 1
 					counter += 1
 			print('num_bids:', counter)
 
@@ -216,6 +222,11 @@ class InputInstance:
 					self.coauthorlist[j].append(i)
 					cnt += 1
 			print('avg_coauthors:', cnt * 2 / self.nr)
+
+			for i in range(self.nr):
+				for j in self.coauthorlist[i]:
+					for k in self.paperlist[j]:
+						self.s[k][i] = 0
 
 		else:
 			file = open('datasets/' + dataset.lower() + '.in', 'r')

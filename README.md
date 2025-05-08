@@ -1,5 +1,13 @@
 # A One-Size-Fits-All Approach to Improving Randomness in Paper Assignment
 
+## DCX
+
+How to run DCX's code: python3 python/dcx_test.py "dataset_name" maxprob beta.
+
+For example: python3 python/dcx_test.py wu 0.9 0.1
+
+I added two algorithms in algorithms.py: ours and PMPL. ours is the current version of my final algo. PMPL is used to add random tricks and test the effectiveness.
+
 ## Table of Contents
 
 - [General Information](#general-information)

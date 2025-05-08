@@ -70,9 +70,9 @@ with open('results/output_bvn.out', 'r') as file:
 		result = line.strip().split()
 		assignment_final[int(result[1]) - instance.nr][int(result[0])] = True
 
-# for i in range(instance.np):
-# 	if assignment_final[i].count(True) != instance.ellp:
-# 		print(i, 'no!!!')
+for i in range(instance.np):
+	if assignment_final[i].count(True) != instance.ellp:
+		print(i, 'no!!!')
 
 sum_coauthors = 0
 for i in range(instance.nr):
