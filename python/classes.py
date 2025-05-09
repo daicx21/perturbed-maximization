@@ -153,7 +153,7 @@ class InputInstance:
 			for row in tensor_data['tpms'].T:
 				self.s.append(row.tolist())
 			self.ellp = 4
-			self.ellr = 6
+			self.ellr = 5
 
 			author_data = np.load('datasets/wu/wu_authorship.npy')
 			self.authorship = []
@@ -227,7 +227,7 @@ class InputInstance:
 			cnt = 0
 			for i in range(self.nr):
 				cnt += len(self.coauthorlist[i])
-			print('avg_coauthors:', cnt * 2 / self.nr)
+			print('avg_coauthors:', cnt / self.nr)
 
 		else:
 			file = open('datasets/' + dataset.lower() + '.in', 'r')

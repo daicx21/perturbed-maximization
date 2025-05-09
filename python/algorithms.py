@@ -112,82 +112,15 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
 
 def ours(instance, beta = 0.5, maxprob = 1.0):
-	# PM-Quadratic Gurobi implementation
-	# 	The perturbation function used is f(x) = x - beta * x ^ 2
-	# Inputs arguments:
-	# 	instance: the input instance
-	#   beta:     the parameter used in the perturbation function
-	# 	maxprob:  maximum allowed assignment probability
-	# Output: an assignment matrix in nested list
-
 	# Initialize Gurobi solver
 	import gurobipy as gp
 	solver = gp.Model()
 	solver.setParam('OutputFlag', 1)
 
-	instance.deleted = [[False for _ in range(instance.nr)] for _ in range(instance.np)]
-	# for i in range(instance.np):
-	# 	r_list = sorted([j for j in range(instance.nr)], key=lambda x: instance.s[i][x])
-	# 	vis = [False for _ in range(instance.nr)]
-	# 	for j in reversed(r_list):
-	# 		vis[j] = True
-	# 		for k in instance.coauthorlist[j]:
-	# 			if vis[k] and not instance.deleted[i][k]:
-	# 				instance.deleted[i][j] = True
-	# 				break
-
-	# from collections import defaultdict
-	# map_2cycles = defaultdict(list)
-	# vis_pr_list = defaultdict(bool)
-	# deg = defaultdict(int)
-	# pr_list = []
-	# counter = 0
-	# for i in range(instance.nr):
-	# 	for j in instance.bidauthorlist[i]:
-	# 		if j > i and instance.bidauthorship[j][i]:
-	# 			for k in instance.paperlist[i]:
-	# 				for l in instance.paperlist[j]:
-	# 					if instance.bid[l][i] and instance.bid[k][j]:
-	# 						counter += 1
-	# 						map_2cycles[(l, i)].append((k, j))
-	# 						map_2cycles[(k, j)].append((l, i))
-	# 						deg[(l, i)] += 1
-	# 						deg[(k, j)] += 1
-	# 						if not vis_pr_list[(l, i)]:
-	# 							vis_pr_list[(l, i)] = True
-	# 							pr_list.append((l, i))
-	# 						if not vis_pr_list[(k, j)]:
-	# 							vis_pr_list[(k, j)] = True
-	# 							pr_list.append((k, j))
-	# print('actual_2_cycles:', counter)
-
-	# for x in pr_list:
-	# 	if deg[x] > 1:
-	# 		print(x, map_2cycles[x], 233)
-
-	# pr_list = sorted(pr_list, key=lambda x: instance.s[x[0]][x[1]])
-	# vis_pr_list = defaultdict(bool)
-	# for tup1 in reversed(pr_list):
-	# 	vis_pr_list[tup1] = True
-	# 	for tup2 in map_2cycles[tup1]:
-	# 		if vis_pr_list[tup2] and not instance.deleted[tup2[0]][tup2[1]]:
-	# 			instance.deleted[tup1[0]][tup1[1]] = True
-	# 			break
-
-	# cnt1 = cnt2 = 0
-	# for i in range(instance.np):
-	# 	for j in range(instance.nr):
-	# 		if instance.deleted[i][j]:
-	# 			cnt1 += 1
-	# 		else:
-	# 			cnt2 += 1
-	# print('num_deleted: ', cnt1, ' num_non_deleted: ', cnt2)
-	# print()
-
 	assignment = [[0 for j in range(instance.nr)] for i in range(instance.np)]
 	for i in range(instance.np):
 		for j in range(instance.nr):
-			if not instance.deleted[i][j] and instance.s[i][j] > 0:
+			if instance.s[i][j] > 0:
 				assignment[i][j] = solver.addVar(lb = 0, ub = maxprob)
 
 	for j in range(instance.nr):
@@ -202,22 +135,54 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 			solver.addConstr(hhh == hh)
 			solver.setPWLObj(hhh, [0, 1, 2], [0, 0, 0.2])
 
+	deleted = [[False for _ in range(instance.nr)] for _ in range(instance.np)]
 	from collections import defaultdict
-	mp_2cycle = defaultdict(bool)
+	map_2cycles = defaultdict(list)
+	vis_pr_list = defaultdict(bool)
+	pr_list = []
 	for i in range(instance.nr):
 		for j in instance.bidauthorlist[i]:
 			if j > i and instance.bidauthorship[j][i]:
 				for k in instance.paperlist[i]:
 					for l in instance.paperlist[j]:
 						if instance.bid[l][i] and instance.bid[k][j]:
-							if not mp_2cycle[(l, i, k, j)]:
-								solver.addConstr(assignment[l][i] + assignment[k][j] <= 1)
-								mp_2cycle[(l, i, k, j)] = True
+							map_2cycles[(l, i)].append((k, j))
+							map_2cycles[(k, j)].append((l, i))
+							if not vis_pr_list[(l, i)]:
+								vis_pr_list[(l, i)] = True
+								pr_list.append((l, i))
+							if not vis_pr_list[(k, j)]:
+								vis_pr_list[(k, j)] = True
+								pr_list.append((k, j))
 
-	# Initialize assignment matrix and objective function
+	pr_list = sorted(pr_list, key=lambda x: instance.s[x[0]][x[1]])
+	vis_pr_list = defaultdict(bool)
+	for tup1 in reversed(pr_list):
+		vis_pr_list[tup1] = True
+		for tup2 in map_2cycles[tup1]:
+			if vis_pr_list[tup2] and not deleted[tup2[0]][tup2[1]]:
+				deleted[tup1[0]][tup1[1]] = True
+				break
+
+	vis_pr_list = defaultdict(bool)
+	for i in range(instance.nr):
+		for j in instance.bidauthorlist[i]:
+			if j > i and instance.bidauthorship[j][i]:
+				for k in instance.paperlist[i]:
+					for l in instance.paperlist[j]:
+						if instance.bid[l][i] and instance.bid[k][j]:
+							if not vis_pr_list[(l, i)]:
+								vis_pr_list[(l, i)] = True
+								if deleted[l][i]:
+									solver.addConstr(assignment[l][i] == 0)
+							if not vis_pr_list[(k, j)]:
+								vis_pr_list[(k, j)] = True
+								if deleted[k][j]:
+									solver.addConstr(assignment[k][j] == 0)
+
 	for i in range(instance.np):
 		for j in range(instance.nr):
-			if instance.deleted[i][j] or instance.s[i][j] == 0:
+			if instance.s[i][j] == 0:
 				continue
 			xpts = []
 			ypts = []
@@ -247,7 +212,7 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 	# Return the resulting matching
 	for i in range(instance.np):
 		for j in range(instance.nr):
-			if not instance.deleted[i][j] and instance.s[i][j] > 0:
+			if instance.s[i][j] > 0:
 				assignment[i][j] = assignment[i][j].X
 	return assignment
 

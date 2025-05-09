@@ -6,12 +6,14 @@
 #include <algorithm>
 #include <map>
 #include <unordered_map>
+#include <vector>
 using namespace std;
 #define inf 1000000000
 
 const int N = 100005, M = 50000005, one = 10000000, dig = 7, debug = 0; // N: maximum number of vertices, M: maximum number of edges
 
-unordered_map<int, bool> mp_bid[N], mp_coauthor[N], mp_vio[N];
+unordered_map<int, bool> mp_bid[N], mp_coauthor[N], mp_cocoauthor[N];
+unordered_map<int, int> mp_vio[N];
 
 int p, r, n, m; // p: number of papers, r: number of reviewers, n = p + r, m: number of edges
 int h[N], u[M], v[M], l[M], se[M], tot = 1; // (simulated) linked lists of adjacent edges; h: heads, (u, v): starting and ending points of an edge, l: pointer to next edge, se: whether edge has been visited, tot: total number of edges ever added
@@ -87,18 +89,15 @@ int gao(int y)
     int hh1;
     if (h1 == u[y]) hh1 = v[y] - r;
     else hh1 = u[y] - r;
-    for (int j=top;j;j--)
-    {
-        int h2 = ((u[st[j]] <= r) ? u[st[j]] : v[st[j]]);
-    }
     if (!top) return mp_vio[h1][hh1];
     int h2 = ((u[st[top]] <= r) ? u[st[top]] : v[st[top]]);
     int hh2;
     if (h2 == u[st[top]]) hh2 = v[st[top]] - r;
     else hh2 = u[st[top]] - r;
     if (h1 == h2) return mp_vio[h1][hh1];
-    if (!mp_vio[h2][hh2]) return !mp_vio[h1][hh1];
-    return mp_coauthor[h1][h2];
+    if (mp_coauthor[h1][h2]) return 4;
+    if (mp_cocoauthor[h1][h2]) return 3;
+    return 2 - mp_vio[h1][hh1];
 }
 
 int tr(int x, int i, int p) // find a fractional edge adjacent to x not visited yet belonging to institution i (or any insitution with fractional paper-instituion load when i = 0)
@@ -165,6 +164,7 @@ void upd(int x, int y) // add flow y to edge with pointer x; update all load cou
 }
 
 map<int,int> mp;
+bool flag;
 
 int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether finding a path
 {
@@ -187,7 +187,7 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
                 }
 
             if(debug) printf("r cycle: %d\n", btm);
-
+            flag=false;
             return 1;
         }
 
@@ -197,6 +197,7 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
             bw = c[x] - fl(c[x]);
             btm = 1; // path always starts from first edge
             if(debug) printf("r path: %d\n", btm);
+            flag=true;
             return 1;
         }
 
@@ -235,7 +236,7 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
                 }
 
             if(debug) printf("p even cycle: %d\n", btm);
-            
+            flag=false;
             return 1;
         }
 
@@ -262,7 +263,7 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
             bw = min(bw, ci[wi] - fl(ci[wi]));
 
             if(debug) printf("p odd cycle: %d\n", btm);
-
+            flag=false;
             return 1;
         }
 
@@ -274,6 +275,7 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
             bw = min(bw, ce(ci[yi]) - ci[yi]);
             btm = 1; // path always starts from first edge
             if(debug) printf("p path: %d\n", btm);
+            flag=true;
             return 1;
         }
     
@@ -303,13 +305,11 @@ int go(int x, int y, int p) // x: current vertex, y: previous edge, p: whether f
 
         fw = min(fw, f[t]);
         bw = min(bw, f[t ^ 1]);
-        
-        
     }
 
     if(t == st[btm] && fw + bw != 0) // if path / cycle starts from current edge, clear path / cycle
     {
-        if((!y) && p) // it's a path
+        if(flag) // it's a path
         {
             fw = min(fw, c[x] - fl(c[x]));
             bw = min(bw, ce(c[x]) - c[x]);
@@ -403,19 +403,37 @@ int main()
     }
 
     freopen("./results/coauthorship.out", "r", stdin);
+    vector<int> coauthorlist[N];
     while (~scanf("%d%d", &x, &y))
     {
         mp_coauthor[x + 1][y + 1] = true;
         mp_coauthor[y + 1][x + 1] = true;
+        coauthorlist[x + 1].push_back(y + 1);
+        coauthorlist[y + 1].push_back(x + 1);
+    }
+
+    for (int i = 1; i <= r; i++)
+    {
+        for (int j: coauthorlist[i])
+        {
+            for (int k: coauthorlist[j])
+            {
+                if (k != i && !mp_coauthor[i][k])
+                {
+                    mp_cocoauthor[i][k] = true;
+                }
+            }
+        }
     }
 
     for (int i = 1; i <= r; i++) C[i] = 0, H[i] = i;
 
     freopen("./results/coauthorvio.out", "r", stdin);
-    while (~scanf("%d%d", &x, &y))
+    while (~scanf("%d%d", &x, &y, &z))
     {
-        mp_vio[x + 1][y + 1] = true;
-        C[x + 1] ++;
+        int hh = (z == 0) ? 2 : 1;
+        C[x + 1] += hh;
+        mp_vio[x + 1][y + 1] = max(mp_vio[x + 1][y + 1], hh);
     }
 
     sort(H + 1, H + r + 1, cmp);
@@ -428,14 +446,14 @@ int main()
             if(!in(c[H[i]]))
             {
                 top = 0;
-                if(go(H[i], 0, 1)) {break;}
+                if(go(H[i], 0, 1)) break;
             }
 
         memset(s, 0, sizeof(s)); // mark all vertices unvisited
         for(int i = 1; i <= r; i++) // now try to find cycles only starting from all vertices
         {
             top = 0;
-            if(go(H[i], 0, 0)) {break;}
+            if(go(H[i], 0, 0)) break;
         }
     }
 
