@@ -429,7 +429,7 @@ int main()
     for (int i = 1; i <= r; i++) C[i] = 0, H[i] = i;
 
     freopen("./results/coauthorvio.out", "r", stdin);
-    while (~scanf("%d%d", &x, &y, &z))
+    while (~scanf("%d%d%d", &x, &y, &z))
     {
         int hh = (z == 0) ? 2 : 1;
         C[x + 1] += hh;

@@ -171,14 +171,16 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 				for k in instance.paperlist[i]:
 					for l in instance.paperlist[j]:
 						if instance.bid[l][i] and instance.bid[k][j]:
-							if not vis_pr_list[(l, i)]:
-								vis_pr_list[(l, i)] = True
-								if deleted[l][i]:
-									solver.addConstr(assignment[l][i] == 0)
-							if not vis_pr_list[(k, j)]:
-								vis_pr_list[(k, j)] = True
-								if deleted[k][j]:
-									solver.addConstr(assignment[k][j] == 0)
+							sum_2cycle = solver.addVar(lb = 0, ub = 1)
+							solver.addConstr(sum_2cycle >= assignment[l][i] + assignment[k][j])
+							xpts = []
+							ypts = []
+							now = 0
+							while now <= 1:
+								xpts.append(now)
+								ypts.append(now * now * 0.1)
+								now += 0.1
+							solver.setPWLObj(sum_2cycle, xpts, ypts)
 
 	for i in range(instance.np):
 		for j in range(instance.nr):

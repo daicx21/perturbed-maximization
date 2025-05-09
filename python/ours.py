@@ -34,36 +34,40 @@ for i in range(5):
 	print(f'{metrics.name(i, style = 2)}: {metrics.calc(instance, assignment, i):.2f}')
 print()
 
-list_nonempty = [[] for _ in range(instance.np)]
+list_nonempty_p = [[] for _ in range(instance.np)]
+list_nonempty_r = [[] for _ in range(instance.nr)]
 
 with open('results/output.out', 'w') as file:
 	print(instance.nr, instance.np, file=file)
 	for i in range(instance.nr):
 		print(1, file=file)
 	for j in range(instance.np):
-		print_list = []
+		list_nonempty = []
 		sum = 0
 		for i in range(instance.nr):
 			if assignment[j][i] > (1e-8):
-				print_list.append([i, j + instance.nr, round(assignment[j][i], 7)])
-				sum += round(assignment[j][i], 7)
-				list_nonempty[j].append(i)
-		
+				assignment[j][i] = round(assignment[j][i], 7)
+				list_nonempty.append([j, i, assignment[j][i]])
+				sum += assignment[j][i]
+				list_nonempty_p[j].append(i)
+				list_nonempty_r[i].append(j)
 		if (abs(sum - round(sum)) > (1e-8)):
 			if sum - round(sum) > (1e-8):
 				sum = sum - round(sum)
-				for j in range(len(print_list)):
-					now = min(sum, print_list[j][2])
-					print_list[j][2] -= now
+				for j in range(len(list_nonempty)):
+					now = min(sum, list_nonempty[j][2])
+					assignment[list_nonempty[j][0]][list_nonempty[j][1]] -= now
 					sum -= now
 			else:
 				sum = round(sum) - sum
-				for j in range(len(print_list)):
-					now = min(sum, 1 - print_list[j][2])
-					print_list[j][2] += now
+				for j in range(len(list_nonempty)):
+					now = min(sum, 1 - list_nonempty[j][2])
+					assignment[list_nonempty[j][0]][list_nonempty[j][1]] += now
 					sum -= now
-		for tup in print_list:
-			print(tup[0], tup[1], "{:.7f}".format(tup[2]), file=file)
+
+	for i in range(instance.nr):
+		for j in list_nonempty_r[i]:
+			print(i, j + instance.nr, "{:.7f}".format(assignment[j][i]), file=file)
 
 with open('results/bidauthorship.out', 'w') as file:
 	for i in range(instance.nr):
@@ -81,7 +85,7 @@ sum_coauthors = 0
 sum_cocoauthors = 0
 with open('results/coauthorvio.out', 'w') as file:
 	for p in range(instance.np):
-		for i in list_nonempty[p]:
+		for i in list_nonempty_p[p]:
 			vis = defaultdict(bool)
 			for j in instance.coauthorlist[i]:
 				if j > i:
@@ -127,7 +131,7 @@ for i in range(instance.np):
 sum_coauthors = 0
 sum_cocoauthors = 0
 for p in range(instance.np):
-	for i in list_nonempty[p]:
+	for i in list_nonempty_p[p]:
 		vis = defaultdict(bool)
 		for j in instance.coauthorlist[i]:
 			if j > i:
