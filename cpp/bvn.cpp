@@ -83,21 +83,40 @@ void re(int x) // remove edge with pointer x
     l[i] = l[x];
 }
 
+inline int gao1(int y)
+{
+    int res = 0, h1 = ((u[y] <= r) ? u[y] : v[y]);
+    for (int j = top; j; j--)
+    {
+        int h2 = ((u[st[j]] <= r) ? u[st[j]] : v[st[j]]);
+        if ((top - j) & 1)
+        {
+            res -= mp_bid[h1][h2];
+        }
+        else
+        {
+            res += mp_bid[h1][h2];
+        }
+    }
+    return res * 4;
+}
+
 int gao(int y)
 {
+    int res = gao1(y);
     int h1 = ((u[y] <= r) ? u[y] : v[y]);
     int hh1;
     if (h1 == u[y]) hh1 = v[y] - r;
     else hh1 = u[y] - r;
-    if (!top) return mp_vio[h1][hh1];
+    if (!top) return res + mp_vio[h1][hh1];
     int h2 = ((u[st[top]] <= r) ? u[st[top]] : v[st[top]]);
     int hh2;
     if (h2 == u[st[top]]) hh2 = v[st[top]] - r;
     else hh2 = u[st[top]] - r;
-    if (h1 == h2) return mp_vio[h1][hh1];
-    if (mp_coauthor[h1][h2]) return 4;
-    if (mp_cocoauthor[h1][h2]) return 3;
-    return 2 - mp_vio[h1][hh1];
+    if (h1 == h2) return res + mp_vio[h1][hh1];
+    if (mp_coauthor[h1][h2]) return res + 4;
+    if (mp_cocoauthor[h1][h2]) return res + 3;
+    return res + 2 - mp_vio[h1][hh1];
 }
 
 int tr(int x, int i, int p) // find a fractional edge adjacent to x not visited yet belonging to institution i (or any insitution with fractional paper-instituion load when i = 0)

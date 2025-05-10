@@ -111,7 +111,7 @@ def PMQ(instance, beta = 0.5, maxprob = 1.0):
 	# Return the resulting matching
 	return [[assignment[i][j].X for j in range(instance.nr)] for i in range(instance.np)]
 
-def ours(instance, beta = 0.5, maxprob = 1.0):
+def ours(instance, beta = 0.5, maxprob = 1.0, pen_coauthor = 0.2, pen_2cycle = 0.1):
 	# Initialize Gurobi solver
 	import gurobipy as gp
 	solver = gp.Model()
@@ -123,6 +123,7 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 			if instance.s[i][j] > 0:
 				assignment[i][j] = solver.addVar(lb = 0, ub = maxprob)
 
+	pen_objective = 0
 	for j in range(instance.nr):
 		list_neighbours = instance.coauthorlist[j].copy()
 		list_neighbours.append(j)
@@ -131,9 +132,10 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 			for k in list_neighbours:
 				if instance.bid[i][k]:
 					hh += assignment[i][k]
-			hhh = solver.addVar()
-			solver.addConstr(hhh == hh)
-			solver.setPWLObj(hhh, [0, 1, 2], [0, 0, 0.2])
+			hhh = solver.addVar(lb = 1)
+			solver.addConstr(hhh >= hh)
+			pen_objective += pen_coauthor * hhh
+	solver.setObjective(pen_objective)
 
 	deleted = [[False for _ in range(instance.nr)] for _ in range(instance.np)]
 	from collections import defaultdict
@@ -178,7 +180,7 @@ def ours(instance, beta = 0.5, maxprob = 1.0):
 							now = 0
 							while now <= 1:
 								xpts.append(now)
-								ypts.append(now * now * 0.1)
+								ypts.append(now * now * pen_2cycle)
 								now += 0.1
 							solver.setPWLObj(sum_2cycle, xpts, ypts)
 

@@ -4,12 +4,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("dataset", help = "name of the dataset")
 parser.add_argument("maxprob", help = "Q", type = float)
 parser.add_argument("beta", help = "β", type = float)
+parser.add_argument("pen_coauthor", help = "pen_coauthor", type = float)
+parser.add_argument("pen_2cycle", help = "pen_2cycle", type = float)
 args = parser.parse_args()
 
 # Set up the dataset being tested and the algorithm
 dataset   = args.dataset
 maxprob   = args.maxprob
 beta      = args.beta
+pen_coauthor = max(args.pen_coauthor, 1e-3)
+pen_2cycle = max(args.pen_2cycle, 1e-3)
 
 # Import the relavant codes
 import algorithms
@@ -22,7 +26,7 @@ from collections import defaultdict
 instance = classes.InputInstance(dataset, init=True)
 
 # Run the algorithm
-assignment = algorithms.ours(instance, beta=beta, maxprob=maxprob)
+assignment = algorithms.ours(instance, beta=beta, maxprob=maxprob, pen_coauthor=pen_coauthor, pen_2cycle=pen_2cycle)
 
 pquality = 0
 for i in range(instance.np):
