@@ -15,6 +15,7 @@ const int N = 100005, M = 50000005, one = 10000000, dig = 7, debug = 0; // N: ma
 unordered_map<int, bool> mp_bid[N], mp_coauthor[N], mp_cocoauthor[N];
 unordered_map<int, int> mp_vio[N];
 
+int rii[N], riii[N];
 int p, r, n, m; // p: number of papers, r: number of reviewers, n = p + r, m: number of edges
 int h[N], u[M], v[M], l[M], se[M], tot = 1; // (simulated) linked lists of adjacent edges; h: heads, (u, v): starting and ending points of an edge, l: pointer to next edge, se: whether edge has been visited, tot: total number of edges ever added
 int s[N], ri[N]; // s: whether vertex has been visited, ri: instituion a reviewer belongs to
@@ -83,39 +84,23 @@ void re(int x) // remove edge with pointer x
     l[i] = l[x];
 }
 
-inline int gao1(int y)
-{
-    int res = 0, h1 = ((u[y] <= r) ? u[y] : v[y]);
-    for (int j = top; j; j--)
-    {
-        int h2 = ((u[st[j]] <= r) ? u[st[j]] : v[st[j]]);
-        if ((top - j) & 1)
-        {
-            res -= mp_bid[h1][h2];
-        }
-        else
-        {
-            res += mp_bid[h1][h2];
-        }
-    }
-    return res * 4;
-}
-
 int gao(int y)
 {
-    int res = gao1(y);
     int h1 = ((u[y] <= r) ? u[y] : v[y]);
     int hh1;
     if (h1 == u[y]) hh1 = v[y] - r;
     else hh1 = u[y] - r;
-    if (!top) return res + mp_vio[h1][hh1];
+    if (!top) return mp_vio[h1][hh1];
     int h2 = ((u[st[top]] <= r) ? u[st[top]] : v[st[top]]);
     int hh2;
     if (h2 == u[st[top]]) hh2 = v[st[top]] - r;
     else hh2 = u[st[top]] - r;
-    if (h1 == h2) return res + mp_vio[h1][hh1];
-    if (mp_coauthor[h1][h2]) return res + 4;
-    if (mp_cocoauthor[h1][h2]) return res + 3;
+    if (h1 == h2) return mp_vio[h1][hh1];
+    int res = 0;
+    if (mp_coauthor[h1][h2]) res += 32;
+    else if (mp_cocoauthor[h1][h2]) res += 16;
+    if (riii[h1] == riii[h2]) res += 8;
+    if (rii[h1] == rii[h2]) res += 4;
     return res + 2 - mp_vio[h1][hh1];
 }
 
@@ -385,7 +370,7 @@ int main()
     int x, y, z;
     char sz[100]; // temp string for flow on edges
 
-    for(int i = 1; i <= r; i++) scanf("%d", &ri[i]);
+    for(int i = 1; i <= r; i++) scanf("%d%d", &rii[i], &riii[i]), ri[i] = 1;
     // for(int i = 1; i <=r; i++) ri[i] = rand() % 2 + 1;
 
     while (~scanf("%d%d%s", &x, &y, sz)) // read in flow as a string

@@ -2,11 +2,13 @@
 
 ## DCX
 
-How to run DCX's code: python3 python/dcx_test.py "dataset_name" maxprob beta.
+How to run DCX's code: python3 python/ours.py "dataset_name" maxprob beta reward_regeion target_seniority reward_seniority penalty_coauthor penalty_2cycle.
 
-For example: python3 python/dcx_test.py wu 0.9 0.1
+For example: python3 python/ours.py wu 0.9 0.1 0.2 2 0.2 0.2 0.1
 
-I added two algorithms in algorithms.py: ours and PMPL. ours is the current version of my final algo. PMPL is used to add random tricks and test the effectiveness.
+For ours algorithm, it uses the ''ours'' function in algorithms.py.
+
+I also added some comment in this function. Hopefully it's more readable now.. apologize
 
 ## Table of Contents
 

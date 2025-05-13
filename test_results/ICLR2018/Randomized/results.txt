@@ -1,0 +1,20 @@
+running time: 37.36 seconds
+Max Quality: 6920.2470
+Our Quality: 6885.2472
+Quality: 0.9949
+Maxprob: 0.90
+AvgMax: 0.90
+Support: 4583.00
+Entropy: 692.81
+L2 Norm: 55.57
+sum_coauthors: 32
+sum_cocoauthors: 173
+sum_2cycles: 2
+#papers_such_that_reviewers_come_from_1_region: 8
+#papers_such_that_reviewers_come_from_2_regions: 195
+#papers_such_that_reviewers_come_from_3_regions: 528
+#papers_such_that_reviewers_come_from_4_regions: 180
+#papers_with_max_reviewer_seniority_0: 5
+#papers_with_max_reviewer_seniority_1: 55
+#papers_with_max_reviewer_seniority_2: 254
+#papers_with_max_reviewer_seniority_3: 597

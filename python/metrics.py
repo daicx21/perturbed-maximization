@@ -7,19 +7,9 @@ def quality(instance, assignment, relative = False):
 	# 	assignment: the assignment matrix
 	#   relative:   whether to calculate the relative quality
 	# Output: the (relative) quality of the matching
-	if instance.dataset.lower() == 'testlarge':
-		ret = 0
-		for i in range(instance.np):
-			for j in instance.biddedlist[i]:
-				ret += instance.s[i][j] * assignment[i][j]
-		if (relative):
-			return ret / instance.max_quality
-		else:
-			return ret
-
 	ret = 0
 	for i in range(instance.np):
-		for j in range(instance.nr):
+		for j in instance.remained_r_for_p[i]:
 			ret += instance.s[i][j] * assignment[i][j]
 	if (relative):
 		return ret / instance.max_quality
@@ -32,15 +22,10 @@ def maxprob(instance, assignment):
 	# 	instance:   the input instance
 	# 	assignment: the assignment matrix
 	# Output: the maximum assignment probability of the matching
-	if instance.dataset.lower() == 'testlarge':
-		ret = 0.0
-		for i in range(instance.np):
-			ret = max(ret, max(assignment[i].values()))
-		return ret
-
 	ret = 0.0
 	for i in range(instance.np):
-		ret = max(ret, max(assignment[i]))
+		for j in instance.remained_r_for_p[i]:
+			ret = max(ret, assignment[i][j])
 	return ret
 
 def avgmaxprob(instance, assignment):
@@ -49,16 +34,12 @@ def avgmaxprob(instance, assignment):
 	# 	instance:   the input instance
 	# 	assignment: the assignment matrix
 	# Output: the average maximum assignment probability of each paper
-	if instance.dataset.lower() == 'testlarge':
-		ret = 0.0
-		for i in range(instance.np):
-			ret += max(ret, max(assignment[i].values()))
-		ret /= instance.np
-		return ret
-	
-	ret = 0
+	ret = 0.0
 	for i in range(instance.np):
-		ret += max(assignment[i])
+		ret_i = 0
+		for j in instance.remained_r_for_p[i]:
+			ret_i = max(ret_i, assignment[i][j])
+		ret += ret_i
 	ret /= instance.np
 	return ret
 
@@ -68,17 +49,10 @@ def supportsize(instance, assignment):
 	# 	instance:   the input instance
 	# 	assignment: the assignment matrix
 	# Output: the support size of the assignment matrix
-	if instance.dataset.lower() == 'testlarge':
-		ret = 0
-		for i in range(instance.np):
-			for j in instance.biddedlist[i]:
-				ret += (assignment[i][j] >= 1e-6)
-		return ret
-
 	ret = 0
 	for i in range(instance.np):
-		for j in range(instance.nr):
-			ret += (assignment[i][j] >= 1e-6)
+		for j in instance.remained_r_for_p[i]:
+			ret += (assignment[i][j] > (1e-8))
 	return ret
 
 def entropy(instance, assignment):
@@ -88,18 +62,10 @@ def entropy(instance, assignment):
 	# 	assignment: the assignment matrix
 	# Output: the entropy of the matching
 	from numpy import log
-	if instance.dataset.lower() == 'testlarge':
-		ret = 0
-		for i in range(instance.np):
-			for j in instance.biddedlist[i]:
-				if (assignment[i][j] > 0):
-					ret -= assignment[i][j] * log(assignment[i][j])
-		return ret
-
 	ret = 0
 	for i in range(instance.np):
-		for j in range(instance.nr):
-			if (assignment[i][j] > 0):
+		for j in instance.remained_r_for_p[i]:
+			if (assignment[i][j] > (1e-8)):
 				ret -= assignment[i][j] * log(assignment[i][j])
 	return ret
 
@@ -110,17 +76,9 @@ def l2normloss(instance, assignment):
 	# 	assignment: the assignment matrix
 	# Output: the Frobenius norm of the assignment matrix
 	from numpy import sqrt
-	if instance.dataset.lower() == 'testlarge':
-		ret = 0
-		for i in range(instance.np):
-			for j in instance.biddedlist[i]:
-				ret += assignment[i][j] * assignment[i][j]
-		ret = sqrt(ret)
-		return ret
-
 	ret = 0
 	for i in range(instance.np):
-		for j in range(instance.nr):
+		for j in instance.remained_r_for_p[i]:
 			ret += assignment[i][j] * assignment[i][j]
 	ret = sqrt(ret)
 	return ret
